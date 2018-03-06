@@ -1,21 +1,20 @@
 Surveillance Station
 ===
 
-Présentation
-===
+## Présentation
+
 Le plugin Surveillance Station permet de commander Surveillance Station en utilisant l’API officielle de Synology.
 Et d’afficher la caméra en direct (live) dans un widget.
 
 image::../images/ss2.png[align="center"]
 
-Compatibilité
-=============
+## Compatibilité
 
 - DSM 5 et ultérieur
 - Surveillance Station version 8.0 minimum (Home Mode à partir de la version 8.1)
 
-Données visibles sur le Dashboard :
-===
+## Données visibles sur le Dashboard :
+
 - *Live* : permet d’afficher la caméra en direct (widget redimensionnable avec le crayon, voir FAQ)
 - *Activer ou Désactiver* : permet d’activer ou de désactiver une caméra de Surveillance Station (une ou plusieurs caméras)
 - *Afficher le statut* : permet d’afficher le statut de la caméra (Désactivée ou Activée)
@@ -25,22 +24,21 @@ Données visibles sur le Dashboard :
 - *PTZ* : permet de contrôler la caméra si celle-ci est compatible. "Patrouille" et "Position prédéfinie" sont aussi disponiblent par scénario
 - *Home Mode* : permet d'afficher le statut, d'activer ou de désactiver le Home Mode (mode Accueil) par scénario (commande rattachée à une caméra, mais il s'agit bien d'une activation/désactivation globale)
 
-Scénario :
-===
+## Scénario :
+
 Les commandes sont disponibles lors de la création d’un scénario. Voici des exemples d’utilisations :
 
 - Lors de l’activation/désactivation de votre alarme, il est possible d’activer/désactiver automatiquement les caméras de Surveillance Station et le Home Mode (mode Accueil).
 - Lors d’une détection d’intrusion, quand l’alarme se déclenche. Il est possible de créer un scénario pour forcer l’enregistrement. Et/Ou de prendre un ou plusieurs instantanés.
 
-=== Installation/Configuration
-==== Installation
+## Installation/Configuration
+### Installation
 Après avoir installé le plugin via le Market. Vous arrivez automatiquement sur cette page :
 
 image::../images/ss1.png[align="center"]
 - Cliquer sur le bouton "Activer"
 
-Configuration
-===
+### Configuration
 Nous allons maintenant paramétrer le plugin.
 
 - *Adresse DNS de votre Synolgy* : adresse/host DNS de votre NAS Synology (DSM), et non l'adresse de Surveillance Station (Exemples d'adresses : MonSyno.tld, dsm.chezmoi.fr.). Cette même adresse doit être accessible de l'extérieur (internet) et de votre réseau local (LAN). Dans le cas d'utilisation d'un IP LAN, la seule fonctionnalité qui ne sera pas possible de l'extérieur : visualiser le Live.
@@ -63,16 +61,15 @@ Puis définir pour chaque caméra :
 - Activer (Oui, sinon l’équipement ne sera pas utilisable)
 - Visible (optionnel si vous ne désirez pas le rendre visible sur le Dashboard. Toutefois, il sera utilisable dans un scénario et visible dans le panel)
 
-Astuces
-===
-==== Alerter Jeedom d'une détection provenant Surveillance Station
+## Astuces
+### Alerter Jeedom d'une détection provenant Surveillance Station
 Il est possible de paramètrer dans Surveillance Station de Synology l'appel d'une url externet (votre Jeedom) en cas d'alerter détection de mouvement. Pour se faire, il faut se rendre dans Surveillance Station, et ajouter une régle d'action.
 
 image::../images/ss10.png[align="center"]
 
 Puis de renseigner l'url de la commande que vous voulez lancer en cas de détection (exemple pour une commande avec l'id 915 : http://dns_de_votre_jeedom/core/api/jeeApi.php?apikey=b8F......Hb7&type=cmd&id=915
 
-==== Alerter Jeedom de l'activation et la désactivation du Home Mode (mode accueil)
+### Alerter Jeedom de l'activation et la désactivation du Home Mode (mode accueil)
 Il est possible de demander à Surveillance Station d'alerter Jeedom lors d'un changement de statut de Home Mode, à l'aide du règle, dans Surveillance Station.
 Et donc, de faire cohabiter les deux applications :
 
@@ -102,7 +99,7 @@ Voici l'explication pour la commande Jeedom "Active Home Mode" (à renouveler po
 - Url : coller l'URL de la commande Jeedom "Active Home Mode", puis cliquer sur Suivant
 - Programmer : personnellement, je laisse Actif partout vu que j'utilise la domotique ou Geofense pour la gestion.
 
-==== Recevoir un SMS provenant de DSM/SS en utilisant le plugin SMS de Jeedom
+### Recevoir un SMS provenant de DSM/SS en utilisant le plugin SMS de Jeedom
 Il est possible de configurer DSM et SS pour lancer des notifications par SMS en utilisant Jeedom avec le plugin SMS.
 Il suffit d'ajouter Jeedom comme fournisseur de service SMS.
 
@@ -136,8 +133,8 @@ image::../images/ss8.png[align="center"]
 image::../images/ss9.png[align="center"]
 
 '''
-=== FAQ
-include::faq.asciidoc[]
-'''
-=== Changelog
-include::changelog.asciidoc[]
+## FAQ
+[Voir la page dédiée](faq.asciidoc).
+
+## Changelog
+[Voir la page dédiée](changelog.asciidoc).
