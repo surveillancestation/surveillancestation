@@ -1,0 +1,45 @@
+<div class="eqLogic-widget eqLogic ui-draggable ui-draggable-handle ui-draggable-disabled allowResize" style="width:#width#;height:#height#;border:#border#;border-radius:#border-radius#;background-color: #background-color#;color: #color#; #style#" data-category="" data-eqLogic_id="#id#" data-version="#version#" >
+   <center class="widget-name"><strong><a href="#eqLink#" style="font-size : 1.1em;#hideEqLogicName#">#name_display#</strong></a>
+   	<span style="font-size: 0.85em;position: relative;top:-2px;">#object_name#</span>
+    </center>
+    <center>
+        <span class="directDisplay zoom cursor" style="width : 90%;max-height:90%;"><img src="#host#:#port#/webapi/SurveillanceStation/videoStreaming.cgi?api=SYNO.SurveillanceStation.VideoStream&version=1&cameraId=#cameraId#&method=Stream&format=#formatvideo#&_sid=#sid#" alt='' class="img-responsive" data-eqLogic_id="#id#"/></span>
+    </center>
+    <div class="md_cameraZoom" data-eqLogic_id="#id#" title="#name_display#">
+        <center>
+            <div class="display"><img src="#host#:#port#/webapi/SurveillanceStation/videoStreaming.cgi?api=SYNO.SurveillanceStation.VideoStream&version=1&cameraId=#cameraId#&method=Stream&format=#formatvideo#&_sid=#sid#" alt='' class="img-responsive" data-eqLogic_id="#id#" /></div>
+        </center>
+    </div>
+	<script>
+        if ($(".md_cameraZoom[data-eqLogic_id=#id#]").length > 1) {
+            while ($(".md_cameraZoom[data-eqLogic_id=#id#]").length > 1) {
+                $(".md_cameraZoom[data-eqLogic_id=#id#]").eq(0).remove();
+            }
+        }
+        $(".md_cameraZoom[data-eqLogic_id=#id#]").dialog({
+            autoOpen: false,
+            modal: true,
+            resizable: true,
+            height: ((jQuery(window).height() - 100) < 780) ? jQuery(window).height() - 100 : 780,
+            width: ((jQuery(window).width() - 100) < 1280) ? (jQuery(window).width() - 100) : 1280,
+            open: function () {
+                $("body").css({overflow: 'hidden'});
+            },
+            beforeClose: function (event, ui) {
+                $("body").css({overflow: 'inherit'});
+            }
+        });
+        $('.zoom[data-eqLogic_id=#id#]').off().unbind();
+        $('.eqLogic[data-eqLogic_id=#id#]').delegate('.zoom', 'click', function () {
+            $(".md_cameraZoom[data-eqLogic_id=#id#] .display").empty().append("<center><img style='width: 100%;height: 100%;' src='#host#:#port#/webapi/SurveillanceStation/videoStreaming.cgi?api=SYNO.SurveillanceStation.VideoStream&version=1&cameraId=#cameraId#&method=Stream&format=#formatvideo#&_sid=#sid#' alt='' class='img-responsive'/></center>");
+            $(".md_cameraZoom[data-eqLogic_id=#id#]").dialog("open");
+        });
+	</script>
+</div>
+
+
+
+
+
+
+

@@ -1,0 +1,10 @@
+{
+	"id" : "surveillanceStation",
+	"name" : "Surveillance Station",
+	"description" : "Plugin pour Synology surveillance station",
+	"licence" : "AGPL",
+	"author" : "Phifi",
+	"require" : "2.0",
+	"hasDependency" : true,
+	"category" : "security"
+}

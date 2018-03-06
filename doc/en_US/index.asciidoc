@@ -1,0 +1,123 @@
+== Surveillance Station
+
+=== Introduction
+Le plugin Surveillance Station permet de commander Surveillance Station en utilisant l’API officielle de Synology. Et d’afficher la caméra en direct dans un widget dédié.
+
+==== Compatibilité :
+
+- DSM 5
+- Surveillance Station 6.2 et ultérieur
+
+==== Données visibles sur le Dashboard :
+[horizontal]
+- *Live* : permet d’afficher la caméra en direct dans un widget dédié (redimmentionnable avec le crayon, voir FAQ)
+- *Activer ou Désactiver une caméra* : permet d’activer ou de désactiver une caméra de Surveillance Station (une ou plusieurs caméras)
+- *Afficher le statut de la caméra* : permet d’afficher le statut de la caméra (Désactivée ou Activée)
+- *Démarrer ou arrêter un enregistrement forcé* : permet de forcer un enregistrement (si la caméra est désactivée au moment du lancement, elle sera activée automatiquement)
+- *Snapshot (instantané)* : permet de prendre une photo de la caméra au moment de la demande (nécéssite l’installation de Ruby, voir FAQ)
+- *Dropbox et Mail* : permet d’envoyer automatiquement un snapshot par mail et/ou Dropbox
+- *Activer ou Désactiver la détection mouvement* : permet d’activer ou de désactiver la détection de mouvement (par Surveillance Station ou par Caméra) SEULEMENT quand la caméra est activée
+- *Afficher le statut de la détection mouvement* : permet d’afficher le statut de la détection de mouvement (Désactivée ou Activée)
+
+[TIP]
+Pour avoir le Live et l'accès aux commandes sur le Dashboard, il faut créer deux équipements par caméra :
+- Live : en cochant dans la config "Cet équipement sera utilisé pour visualiser le live d'une caméra"
+- Commandes : en laissant décoché dans la config "Cet équipement sera utilisé pour visualiser le live d'une caméra"
+
+==== Scénario :
+Les commandes sont disponibles lors de la création d’un scénario. Voici des exemples d’utilisations :
+
+- Lors de l’activation/désactivation de votre alarme, il est possible d’active/désactive automatiquement les caméras de Surveillance Station.
+- Lors d’une détection d’intrusion, quand l’alarme se déclenche. Il est possible de créer un scénario pour forcer l’enregistrement. Et/Ou de prendre un ou plusieurs snapshot avec envoi sur Dropbox et par mail.
+
+=== Installation/Configuration
+==== Installation
+Après avoir installé le plugin via le Market (il est conseillé de prendre la version Stable). Vous arrivez automatiquement sur cette page :
+
+image::../images/ss1.png[align="center"]
+- Cliquer sur le bouton "Activer"
+
+==== Configuration
+Nous allons maintenant paramétrer un équipement. Pour se faire, cliquer sur Plugins / Sécurité / Surveillance Station
+
+Puis cliquer sur le logo "Ajouter" ou "Ajouter un équipement"
+
+image::../images/ss2.png[align="center"]
+
+Puis saisir le nom de l’équipement (ex. Caméra Salon)
+
+image::../images/ss3.png[align="center"]
+
+Puis définir :
+
+- Objet parent
+- Catégorie (optionnelle)
+- Activer (Oui, sinon l’équipement ne sera pas utilisable)
+- Visible (optionel si vous ne désirez pas le rendre visible sur le Dashboard. Toutefois, il sera utilisable dans un scénario)
+
+image::../images/ss4.png[align="center"]
+
+Dans la zone "Configuration Synology" (à gauche) vous devez définir les adresses interne et externe et votre identifiant.
+
+- *Accès interne* : il faut renseigner le procole et l’adresse IP interne (local/LAN) du NAS Synology (exemple "Adresse : http://192.168.1.10" et "Port : 5000")
+- *Accès externe* : il faut renseigner le procole et l’adresse IP fixe ou DNS (Wan/par Internet) du NAS Synology (exemple "Adresse : https://MonNomDomaine.tld" et "Port : 5001")
+- *Identifiant* : il faut renseigner un identifiant connu du NAS Synology avec les droits "users" et le mot de passe qui est associé. Pensez à vérifier aussi les droits dans Surveillance Station.
+- *A cocher si Surveillance Station version 6* : à cocher seulement si vous êtes encore sur la version 6.x de Surveillance Station (pas de DSM)
+- *Cet équipement sera utilisé pour visualiser le live d’une caméra* : à cocher pour créer un widget permettant de voir la caméra en live (attention : il faut créer un autre équipement pour les commandes)
+
+image::../images/ss5.png[align="center"]
+
+Pour vérifier vos paramètres, cliquer sur le bouton "Tester". Et sur "Sauvegarder" si la connexion est réussie.
+
+A droite, si vous avez bien configuré la zone "Configuration Synology", vous devez voir la liste de votre(vos) caméra(s).
+
+image::../images/ss6.png[align="center"]
+
+==== Configuration Email (smtp)
+Il s’agit de définir les paramètres qui seront utilisés pour envoyer le mail (expéditeur).
+
+- *Serveur* : renseigner le serveur SMTP de votre messagerie (ex : smtp.orange.fr)
+- *Port* : renseigner le port du serveur SMTP, 25 par défaut pour du non sécurisé
+- *Utilisateur* : renseigner l’identifiant (login) de votre messagerie. Pas nécessaire si vous utilisez le serveur SMTP de votre FAI
+- *Mot de passe* : renseigner le mot de passe associé à votre login de messagerie. Pas nécessaire si vous utilisez le serveur SMTP de votre FAI
+- *Sécurité* : laisser "Aucune" si vous utilisez le port 25. Sinon, faite un choix suivant la sécurité associé au port
+- *Mail expéditeur* : l’adresse messagerie correspondant à l’expéditeur
+- *Nom expéditeur* : le nom qui sera affiché à la réception du mail (ex :Jeedom)
+- *Sujet du mail* : l’objet/sujet du mail qui sera affiché à la réception du mail (ex : [Jeedom] Alerte caméra)
+
+Une fois les différents paramètres renseignés, faite un enregistrement. Cliquer sur le bouton "Tester", et vérifier si un mail de test est arrivé dans la messagerie correspondant à l’expéditeur
+
+image::../images/ss7.png[align="center"]
+image::../images/ss8.png[align="center"]
+
+==== Configuration Dropbox
+Permet de définir un token pour envoyer automatiquement vos instantanés (snapshot/images) dans votre compte Dropbox.
+
+Comment créer un token pour Dropbox :
+
+- s’identifier sur le site Dropbox avec votre compte
+- se rendre ici https://www.dropbox.com/developers-v1/
+- cliquer sur "App console"
+- Cliquer sur "Create app" en haut à droite
+- sélectionner "Dropbox API app"
+- sélectionner "Files and datastores"
+- sélectionner "Yes …​"
+- saisir le nom de l’application (correspondera au nom du dossier parent dans Dropbox)
+- Rubrique "OAuth 2", Generated access token, cliquer sur le bouton "Generate"
+- Copier le code complet, et le coller dans la configuration du Plugin
+
+image::../images/ss9.png[align="center"]
+
+=== Alerter Jeedom d'une détection de Surveillance Station
+Il est possible de paramètrer dans Surveillance Station de Synology l'appel d'une url externet (votre Jeedom) en cas d'alerter détection de mouvement. Pour se faire, il faut se rendre dans Surveillance Station, et ajouter une régle d'action.
+
+image::../images/ss10.png[align="center"]
+
+Puis de renseigner l'url de la commande que vous voulez lancer en cas de détection (ex : http://ip_de_votre_jeedom/core/api/jeeApi.php?apikey=b8F......Hb7&type=cmd&id=915
+
+'''
+=== FAQ
+include::faq.asciidoc[]
+'''
+=== Changelog
+include::changelog.asciidoc[]

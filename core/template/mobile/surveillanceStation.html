@@ -1,0 +1,24 @@
+<div class="eqLogic eqLogic-widget" data-eqLogic_id="#id#" data-version="mobile" style="background-color: #background-color#;color: #color#;#style#;" data-first="0">
+	<center>#name_display#</center>
+	<center>
+	<a href="#popupCameraZoom#id#" data-rel="popup" data-position-to="window" data-transition="none">
+		<img data-eqLogic_id="#id#" style="width:100%;display:block;" src="#host#:#port#/webapi/SurveillanceStation/videoStreaming.cgi?api=SYNO.SurveillanceStation.VideoStream&version=1&cameraId=#cameraId#&method=Stream&format=#formatvideo#&_sid=#sid#" alt=''/>
+	</a>
+	</center>
+	<div data-role="popup" id="popupCameraZoom#id#">
+		<div data-role="header">
+			<h1>#name#</h1>
+			<a href="#" data-rel="back" class="ui-btn ui-corner-all ui-shadow ui-btn-a ui-icon-delete ui-btn-icon-notext ui-btn-right">Close</a>
+		</div>
+		<div data-role="content">
+			<center>
+				<div class="display" style="margin-left : auto;margin-right : auto;width:auto;">
+					<img data-eqLogic_id="#id#" style="width:100%;display:block;" src="#host#:#port#/webapi/SurveillanceStation/videoStreaming.cgi?api=SYNO.SurveillanceStation.VideoStream&version=1&cameraId=#cameraId#&method=Stream&format=#formatvideo#&_sid=#sid#" alt=''/>
+				</div>
+			</center>
+		</div>
+	</div>
+	<script>
+		$('.eqLogic[data-eqLogic_id=#id#]').height(deviceInfo.bSize  * (3/4) * 1.2);
+	</script>
+</div>
