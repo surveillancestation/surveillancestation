@@ -1,5 +1,5 @@
 Surveillance Station
-=====================
+===
 
 Présentation
 ===
@@ -14,8 +14,8 @@ Compatibilité
 - DSM 5 et ultérieur
 - Surveillance Station version 8.0 minimum (Home Mode à partir de la version 8.1)
 
-==== Données visibles sur le Dashboard :
-[horizontal]
+Données visibles sur le Dashboard :
+===
 - *Live* : permet d’afficher la caméra en direct (widget redimensionnable avec le crayon, voir FAQ)
 - *Activer ou Désactiver* : permet d’activer ou de désactiver une caméra de Surveillance Station (une ou plusieurs caméras)
 - *Afficher le statut* : permet d’afficher le statut de la caméra (Désactivée ou Activée)
@@ -25,7 +25,8 @@ Compatibilité
 - *PTZ* : permet de contrôler la caméra si celle-ci est compatible. "Patrouille" et "Position prédéfinie" sont aussi disponiblent par scénario
 - *Home Mode* : permet d'afficher le statut, d'activer ou de désactiver le Home Mode (mode Accueil) par scénario (commande rattachée à une caméra, mais il s'agit bien d'une activation/désactivation globale)
 
-==== Scénario :
+Scénario :
+===
 Les commandes sont disponibles lors de la création d’un scénario. Voici des exemples d’utilisations :
 
 - Lors de l’activation/désactivation de votre alarme, il est possible d’activer/désactiver automatiquement les caméras de Surveillance Station et le Home Mode (mode Accueil).
@@ -38,7 +39,8 @@ Après avoir installé le plugin via le Market. Vous arrivez automatiquement sur
 image::../images/ss1.png[align="center"]
 - Cliquer sur le bouton "Activer"
 
-==== Configuration
+Configuration
+===
 Nous allons maintenant paramétrer le plugin.
 
 - *Adresse DNS de votre Synolgy* : adresse/host DNS de votre NAS Synology (DSM), et non l'adresse de Surveillance Station (Exemples d'adresses : MonSyno.tld, dsm.chezmoi.fr.). Cette même adresse doit être accessible de l'extérieur (internet) et de votre réseau local (LAN). Dans le cas d'utilisation d'un IP LAN, la seule fonctionnalité qui ne sera pas possible de l'extérieur : visualiser le Live.
@@ -61,7 +63,8 @@ Puis définir pour chaque caméra :
 - Activer (Oui, sinon l’équipement ne sera pas utilisable)
 - Visible (optionnel si vous ne désirez pas le rendre visible sur le Dashboard. Toutefois, il sera utilisable dans un scénario et visible dans le panel)
 
-=== Astuces
+Astuces
+===
 ==== Alerter Jeedom d'une détection provenant Surveillance Station
 Il est possible de paramètrer dans Surveillance Station de Synology l'appel d'une url externet (votre Jeedom) en cas d'alerter détection de mouvement. Pour se faire, il faut se rendre dans Surveillance Station, et ajouter une régle d'action.
 
