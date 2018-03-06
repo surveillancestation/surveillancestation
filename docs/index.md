@@ -5,7 +5,6 @@
 Le plugin Surveillance Station permet de commander Surveillance Station en utilisant l’API officielle de Synology.
 Et d’afficher la caméra en direct (live) dans un widget.
 
-![GitHub Logo](/images/ss2.png)
 ![alt text](https://github.com/surveillancestation/surveillancestation/blob/master/docs/images/ss2.png)
 
 ## Compatibilité
@@ -35,7 +34,6 @@ Les commandes sont disponibles lors de la création d’un scénario. Voici des 
 ### Installation
 Après avoir installé le plugin via le Market. Vous arrivez automatiquement sur cette page :
 
-![GitHub Logo](/images/ss1.png)
 ![alt text](https://github.com/surveillancestation/surveillancestation/blob/master/docs/images/ss1.png)
 
 - Cliquer sur le bouton "Activer"
@@ -67,9 +65,7 @@ Puis définir pour chaque caméra :
 ### Alerter Jeedom d'une détection provenant Surveillance Station
 Il est possible de paramètrer dans Surveillance Station de Synology l'appel d'une url externet (votre Jeedom) en cas d'alerter détection de mouvement. Pour se faire, il faut se rendre dans Surveillance Station, et ajouter une régle d'action.
 
-![GitHub Logo](/images/ss10.png)
 ![alt text](https://github.com/surveillancestation/surveillancestation/blob/master/docs/images/ss10.png)
-
 
 Puis de renseigner l'url de la commande que vous voulez lancer en cas de détection (exemple pour une commande avec l'id 915 : http://dns_de_votre_jeedom/core/api/jeeApi.php?apikey=b8F......Hb7&type=cmd&id=915
 
@@ -132,9 +128,6 @@ Avant de commencer la config de DSM, nous allons préparer une URL :
 - Mot de passe, saisir la clef API récupérée précédemment (apikey)
 - Appliquer les changements, et cliquer sur "Envoyer un message SMS de test"
 
-![GitHub Logo](/images/ss7.png)
-![GitHub Logo](/images/ss8.png)
-![GitHub Logo](/images/ss9.png)
 ![alt text](https://github.com/surveillancestation/surveillancestation/blob/master/docs/images/ss7.png)
 ![alt text](https://github.com/surveillancestation/surveillancestation/blob/master/docs/images/ss8.png)
 ![alt text](https://github.com/surveillancestation/surveillancestation/blob/master/docs/images/ss9.png)
