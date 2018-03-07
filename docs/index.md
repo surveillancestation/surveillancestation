@@ -173,6 +173,7 @@ L’activation ou la désactivation fonctionne seulement quand la caméra est ac
 - je n'ai pas identifié un retour d'info pour récupérer un statut d'un enregistrement en cours (ou pas) dans l'API (passe certainement à refaire)
 - je peux surtout le faire si l'action est faite par Jeedom, mais quand est-il si l'enregistrement a été lancé par un autre moyen..
 - même si un statut était dispo dans la doc, ce dernier serait actualisé seulement toutes les 5min si l'enregistrement a été lancé par un autre moyen.
+
 En gros, il y a du pour et du contre à l'intégration, et j'ai pris la décision de ne pas l'afficher. Car forcement j'aurais eu une demande inverse, un enregistrement a été lancé suite à une détection (pour prendre cet exemple), et je n'ai pas l'info dans Jeedom. Alors que je l'ai quand je le fais via Jeedom. Je pense que tu as compris mon raisonnement
 
 ## Changelog
