@@ -169,6 +169,12 @@ Vérifier les privilèges de l’utilisateur dans Surveillance Station (surement
 #### Impossible de désactiver ou d’activer la détection de mouvement. Que faire ?
 L’activation ou la désactivation fonctionne seulement quand la caméra est activée. Il faut donc activer la caméra avant de modifier ce paramètre.
 
+#### Pourquoi je n'ai pas le statut d'un enregistrement en cours ?
+- je n'ai pas identifié un retour d'info pour récupérer un statut d'un enregistrement en cours (ou pas) dans l'API (passe certainement à refaire)
+- je peux surtout le faire si l'action est faite par Jeedom, mais quand est-il si l'enregistrement a été lancé par un autre moyen..
+- même si un statut était dispo dans la doc, ce dernier serait actualisé seulement toutes les 5min si l'enregistrement a été lancé par un autre moyen.
+En gros, il y a du pour et du contre à l'intégration, et j'ai pris la décision de ne pas l'afficher. Car forcement j'aurais eu une demande inverse, un enregistrement a été lancé suite à une détection (pour prendre cet exemple), et je n'ai pas l'info dans Jeedom. Alors que je l'ai quand je le fais via Jeedom. Je pense que tu as compris mon raisonnement
+
 ## Changelog
 - 2018-03-07 : Doc OK en passant par Jeedom / Correction PTZ Home / Ajout d'une info pour l'incompatibilité SS inférieur à 8.0
 - 2018-02 : réécriture/refonte complète du plugin
