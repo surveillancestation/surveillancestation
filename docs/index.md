@@ -170,11 +170,12 @@ Vérifier les privilèges de l’utilisateur dans Surveillance Station (surement
 L’activation ou la désactivation fonctionne seulement quand la caméra est activée. Il faut donc activer la caméra avant de modifier ce paramètre.
 
 ## Changelog
-- 02-2018 : réécriture/refonte complète du plugin
-- 09-2017 : supprime info.xml
-- 05-2017 : ajout du fichier plugin info en json
-- 11-2016 : ajout de quelques commandes PTZ (en attendant une refonte)
-- 10-2016 : ajout de l'affichage avancé
+- 2018-03-07 : Doc OK en passant par Jeedom / Correction PTZ Home / Ajout d'une info pour l'incompatibilité SS inférieur à 8.0
+- 2018-02 : réécriture/refonte complète du plugin
+- 2017-09 : supprime info.xml
+- 2017-05 : ajout du fichier plugin info en json
+- 2016-11 : ajout de quelques commandes PTZ (en attendant une refonte)
+- 2016-10: ajout de l'affichage avancé
 - 2.7 : correction des dépendances pour Debian Wheezy
 - 2.6 : correction de la compatibilité avec mot de passe complexe (caractères spéciaux). Automatisation de l’installation des dépendances
 - 2.5 : ajout activation ou désactivation détection de mouvement
