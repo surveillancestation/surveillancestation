@@ -174,7 +174,7 @@ L’activation ou la désactivation fonctionne seulement quand la caméra est ac
 - je peux surtout le faire si l'action est faite par Jeedom, mais quand est-il si l'enregistrement a été lancé par un autre moyen..
 - même si un statut était dispo dans la doc, ce dernier serait actualisé seulement toutes les 5min si l'enregistrement a été lancé par un autre moyen.
 
-En gros, il y a du pour et du contre à l'intégration, et j'ai pris la décision de ne pas l'afficher. Car forcement j'aurais eu une demande inverse, un enregistrement a été lancé suite à une détection (pour prendre cet exemple), et je n'ai pas l'info dans Jeedom. Alors que je l'ai quand je le fais via Jeedom. Je pense que tu as compris mon raisonnement
+En gros, il y a du pour et du contre à l'intégration, et j'ai pris la décision de ne pas l'afficher. Car forcement j'aurais eue une demande inverse, un enregistrement a été lancé suite à une détection (pour prendre cet exemple), et je n'ai pas l'info dans Jeedom. Alors que j'ai l'info quand l'action est faite via Jeedom.
 
 ## Changelog
 - 2018-03-07 : Doc OK en passant par Jeedom / Correction PTZ Home / Ajout d'une info pour l'incompatibilité SS inférieur à 8.0
