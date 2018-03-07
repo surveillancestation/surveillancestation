@@ -14,14 +14,14 @@ Et d’afficher la caméra en direct (live) dans un widget.
 
 ## Données visibles sur le Dashboard :
 
-- *Live* : permet d’afficher la caméra en direct (widget redimensionnable avec le crayon, voir FAQ)
-- *Activer ou Désactiver* : permet d’activer ou de désactiver une caméra de Surveillance Station (une ou plusieurs caméras)
-- *Afficher le statut* : permet d’afficher le statut de la caméra (Désactivée ou Activée)
-- *Démarrer et arrêter un enregistrement* : permet de forcer un enregistrement (automatiquement stocker dans Surveillance Station)
-- *instantané (Snapshot)* : permet de prendre une capture de la caméra au moment de la demande (automatiquement stocker dans Surveillance Station)
-- *Activer ou Désactiver la détection de mouvement* : permet d’activer ou de désactiver la détection de mouvement par scénario (par Surveillance Station ou par Caméra) SEULEMENT quand la caméra est activée
-- *PTZ* : permet de contrôler la caméra si celle-ci est compatible. "Patrouille" et "Position prédéfinie" sont aussi disponiblent par scénario
-- *Home Mode* : permet d'afficher le statut, d'activer ou de désactiver le Home Mode (mode Accueil) par scénario (commande rattachée à une caméra, mais il s'agit bien d'une activation/désactivation globale)
+- **Live** : permet d’afficher la caméra en direct (widget redimensionnable avec le crayon, voir FAQ)
+- **Activer ou Désactiver** : permet d’activer ou de désactiver une caméra de Surveillance Station (une ou plusieurs caméras)
+- **Afficher le statut** : permet d’afficher le statut de la caméra (Désactivée ou Activée)
+- **Démarrer et arrêter un enregistrement** : permet de forcer un enregistrement (automatiquement stocker dans Surveillance Station)
+- **instantané (Snapshot)** : permet de prendre une capture de la caméra au moment de la demande (automatiquement stocker dans Surveillance Station)
+- **Activer ou Désactiver la détection de mouvement** : permet d’activer ou de désactiver la détection de mouvement par scénario (par Surveillance Station ou par Caméra) SEULEMENT quand la caméra est activée
+- **PTZ** : permet de contrôler la caméra si celle-ci est compatible. "Patrouille" et "Position prédéfinie" sont aussi disponiblent par scénario
+- **Home Mode** : permet d'afficher le statut, d'activer ou de désactiver le Home Mode (mode Accueil) par scénario (commande rattachée à une caméra, mais il s'agit bien d'une activation/désactivation globale)
 
 ## Scénario :
 
@@ -47,7 +47,7 @@ Nous allons maintenant paramétrer le plugin.
 - *Identifiant Surveillance Station* : identifiant d'un compte avec les droits : dossier "surveillance" dans "permissions", "Surveillance Station" dans "Applications" et un privilège directeur dans Surveillance Station
 - *Mot de passe Surveillance Station* : mot de passe associé à votre identifiant
 
-[IMPORTANT]
+**[IMPORTANT]**
 Connexion sécurisée doit être utilisée seulement si votre certificat a été émis et vérifié par une Autorité de Certification. Le plugin n'est pas compatible avec le certificat auto-signé par défaut.
 
 Puis, il suffit de se rendre sur la page d'accueil de configuration du plugin, et de cliquer sur : Synchronisation.
