@@ -1,4 +1,7 @@
 @import "{{ site.theme }}";
+body {
+ background-color: aliceblue;
+}
 .page-header {
  color:#fff;
  text-align:center;
