@@ -1,5 +1,3 @@
-# Surveillance Station
-
 ## Présentation
 
 Le plugin Surveillance Station permet de commander Surveillance Station en utilisant l’API officielle de Synology.
