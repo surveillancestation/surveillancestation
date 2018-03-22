@@ -127,7 +127,9 @@ Avant de commencer la config de DSM, nous allons préparer une URL :
 - Appliquer les changements, et cliquer sur "Envoyer un message SMS de test"
 
 ![GitHub Logo](/images/ss7.png)
+
 ![GitHub Logo](/images/ss8.png)
+
 ![GitHub Logo](/images/ss9.png)
 
 ## FAQ
