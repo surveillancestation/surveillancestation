@@ -127,9 +127,9 @@ Before starting the config of DSM, we will prepare a URL:
 - Password, enter API key retrieved previously (apikey)
 - Apply the changes, and click on "Send SMS test message"
 
-![GitHub Logo](/surveillancestation/docs/images/ss7.png)
+![GitHub Logo](/../images/ss7.png)
 
-![GitHub Logo](https://surveillancestation.github.io/surveillancestation/docs/images/ss8.png)
+![GitHub Logo](../images/ss8.png)
 
 ![GitHub Logo](/../images/ss9.png)
 
