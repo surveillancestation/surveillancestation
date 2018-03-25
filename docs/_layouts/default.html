@@ -63,7 +63,7 @@
        <select class="sel_lang">
         {% if site.langs.size >= 2 %}
         {% for lang in site.langs %}
-        <option value="{{ lang }}">{% if lang == "fr_FR" %}Français{% endif %}{% if lang == "en_US" %}English{% endif %}{% if lang == "ru_RU" %}Russe{% endif %}{% if lang == "de_DE" %}Deutsch{% endif %}{% if lang == "es_ES" %}Spanish{% endif %}{% if lang == "it_IT" %}Italien{% endif %}{% if lang == "id_ID" %}Indien{% endif %}</option>
+        <option value="{{ lang }}">{% if lang == "fr_FR" %}Français{% endif %}{% if lang == "en_US" %}English{% endif %}</option>
         {% endfor %}
         {% endif %}
       </select>
@@ -82,7 +82,7 @@
 <script type="text/javascript" src="/{{site.github.project_title}}/assets/js/jquery.toc.js"></script>
 <script type="text/javascript">
   $(document).ready(function() {
-   var title = '{{site.github.project_title}}';
+   var title = 'Surveillance Station';
    title = title.replace('plugin-','');
    $('#doc_title').append(title[0].toUpperCase() + title.substring(1))
    document.title = 'Documentation Jeedom | '+ title[0].toUpperCase() + title.substring(1)
