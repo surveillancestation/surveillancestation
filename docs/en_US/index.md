@@ -1,11 +1,11 @@
-## Presentation
+# Presentation
 
 The Surveillance Station plug-in allows you to control Surveillance Station using the official Synology API.
 And to display the live camera in a widget.
 
 ![GitHub Logo](/docs/images/ss2.png)
 
-## Compatibility
+# Compatibility
 
 - DSM 5 and later
 - Surveillance Station version 8.0 minimum (Home Mode from version 8.1)
