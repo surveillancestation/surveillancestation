@@ -3,7 +3,7 @@
 The Surveillance Station plug-in allows you to control Surveillance Station using the official Synology API.
 And to display the live camera in a widget.
 
-![GitHub Logo](/docs/images/ss2.png)
+![GitHub Logo](/../images/ss2.png)
 
 # Compatibility
 
@@ -32,7 +32,7 @@ The commands are available when creating a scenario. Here are some examples of u
 ## Installation
 After installing the plugin via the Market. You arrive automatically on this page:
 
-![GitHub Logo](/docs/images/ss1.png)
+![GitHub Logo](/../images/ss1.png)
 
 - Click on the "Activate" button
 
@@ -64,7 +64,7 @@ Then define for each camera:
 ## Alert Jeedom of a detection from Surveillance Station
 It is possible to set in Synology's Surveillance Station the call of an externet url (your Jeedom) in case of alert motion detection. To do so, you have to go to Surveillance Station, and add a rule of action.
 
-![GitHub Logo](/docs/images/ss10.png)
+![GitHub Logo](/../images/ss10.png)
 
 Then enter the url of the command you want to launch in case of detection (example for a command with id 915 : http://dns_de_votre_jeedom/core/api/jeeApi.php?apikey=b8F......Hb7&type=cmd&id=915
 
