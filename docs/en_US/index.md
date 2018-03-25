@@ -137,40 +137,40 @@ Before starting the config of DSM, we will prepare a URL:
 ### What is the frequency of refreshing the statutes?
 The plugin updates the information every 5 minutes (modifiable in the "Task Engine")
 
-## I do not see my predefined positions, and my patrols when creating a scenario:
+### I do not see my predefined positions, and my patrols when creating a scenario:
 as soon as you create a new position or patrol, you have to restart a synchronization via the plugin. Update the list in your scenarios.
 
-##### I get an error when I request the activation or deactivation of the camera or an error code 117:
+### I get an error when I request the activation or deactivation of the camera or an error code 117:
 the identifier certainly does not have the right privileges in Surveillance Station. Change viewer privilege to director
 
-#### I get an error code 105:
+### I get an error code 105:
 the ID does not have rights to use the Surveillance Station application (config panel / User / edit user / Application tab / Check Station check)
 
-#### I get a 401 error code:
+### I get a 401 error code:
 the identifier is surely disabled in Surveillance Station. I advise you to use a unique identifier with rights: folder "monitoring" in "permissions", "Surveillance Station" in "Applications" and a privilege director in Surveillance Station
 
-#### I get a 407 error code:
+### I get a 407 error code:
 login is blocked (config panel / Security / account tab / Allow / Block list / Blog list tab)
 
-#### I get an error: Connection refused
+### I get an error: Connection refused
 Make sure that the address and the port correspond to your Synology, and not to Surveillance Station
 
-#### The Live's poster is overflowing with the widget (or too big / small), I want to resize the size. How to do ?
+### The Live's poster is overflowing with the widget (or too big / small), I want to resize the size. How to do ?
 You can resize the widget size with the pencil at the top right on the Dashboard.
 
-#### Resizing the Widget of my Live Camera does not work. What to do ?
+### Resizing the Widget of my Live Camera does not work. What to do ?
 Resizing is effective only after refreshing the page. For ease of adjustment, I advise you to choose a size of the Widget "camera off". And reactivate the camera, then refresh Dashboard again.
 
-#### In HTTPS, the live camera is not displayed. What to do ?
+### In HTTPS, the live camera is not displayed. What to do ?
 You certainly have a self-signed certificate (to check it, in DSM / Control Panel / Security / Certificate). In this case, the plugin is not compatible (it is possible to add an exception in your Internet browser, but this solution may not work on your mobile). I advise you to go through a certification authority. There are for example "StartSSL", "CAcert" and "Let's Encrypt" which offer a valid and free certificate (to be renewed once in a while according to the authority)
 
-#### Enabling and disabling the camera does not work. What to do ?
+### Enabling and disabling the camera does not work. What to do ?
 Check the user's privileges in Surveillance Station (probably as Spectator, to be changed to Director).
 
-#### Can not disable or enable motion detection. What to do ?
+### Can not disable or enable motion detection. What to do ?
 Activation or deactivation only works when the camera is activated. It is therefore necessary to activate the camera before modifying this parameter.
 
-#### Why do not I have the status of a recording in progress?
+### Why do not I have the status of a recording in progress?
 - I have not identified a return of info to recover a status of a recording in progress (or not) in the API (certainly passes to redo)
 - I can especially do it if the action is done by Jeedom, but when is it if the recording was started by some other way ..
 - even if a status was available in the doc, the latter would be updated only every 5min if the recording was launched by another means.
