@@ -60,15 +60,15 @@ Then define for each camera:
 - Activate (Yes, otherwise the equipment will not be usable)
 - Visible (optional if you do not want to make it visible on the Dashboard, but it will be usable in a scenario and visible in the panel)
 
-## Tips
-### Alert Jeedom of a detection from Surveillance Station
+# Tips
+## Alert Jeedom of a detection from Surveillance Station
 It is possible to set in Synology's Surveillance Station the call of an externet url (your Jeedom) in case of alert motion detection. To do so, you have to go to Surveillance Station, and add a rule of action.
 
-![GitHub Logo](/images/ss10.png)
+![GitHub Logo](/docs/images/ss10.png)
 
 Then enter the url of the command you want to launch in case of detection (example for a command with id 915 : http://dns_de_votre_jeedom/core/api/jeeApi.php?apikey=b8F......Hb7&type=cmd&id=915
 
-### Alert Jeedom of activation and deactivation of Home Mode
+## Alert Jeedom of activation and deactivation of Home Mode
 It is possible to have Surveillance Station alert Jeedom when changing the Home Mode status, using the rule, in Surveillance Station.
 And so, to make the two applications cohabit:
 
@@ -98,7 +98,7 @@ Here is the explanation for the Jeedom "Active Home Mode" command (to be renewed
 - Url : paste the URL of the Jeedom "Active Home Mode" command, then click Next
 - Programmer : personally, I leave Active everywhere since I use home automation or Geofense for management.
 
-### Receive SMS from DSM / SS using Jeedom's SMS plugin
+## Receive SMS from DSM / SS using Jeedom's SMS plugin
 It is possible to configure DSM and SS to launch SMS notifications using Jeedom with the SMS plugin.
 Just add Jeedom as an SMS service provider.
 
@@ -127,20 +127,20 @@ Before starting the config of DSM, we will prepare a URL:
 - Password, enter API key retrieved previously (apikey)
 - Apply the changes, and click on "Send SMS test message"
 
-![GitHub Logo](/surveillancestation/docs/images/ss7.png)
+![GitHub Logo](/docs/images/ss7.png)
 
-![GitHub Logo](/images/ss8.png)
+![GitHub Logo](/docs/images/ss8.png)
 
-![GitHub Logo](/images/ss9.png)
+![GitHub Logo](/docs/images/ss9.png)
 
-## FAQ
-#### What is the frequency of refreshing the statutes?
+# FAQ
+### What is the frequency of refreshing the statutes?
 The plugin updates the information every 5 minutes (modifiable in the "Task Engine")
 
-#### I do not see my predefined positions, and my patrols when creating a scenario:
+## I do not see my predefined positions, and my patrols when creating a scenario:
 as soon as you create a new position or patrol, you have to restart a synchronization via the plugin. Update the list in your scenarios.
 
-#### I get an error when I request the activation or deactivation of the camera or an error code 117:
+##### I get an error when I request the activation or deactivation of the camera or an error code 117:
 the identifier certainly does not have the right privileges in Surveillance Station. Change viewer privilege to director
 
 #### I get an error code 105:
@@ -177,7 +177,7 @@ Activation or deactivation only works when the camera is activated. It is theref
 
 Basically, there is pros and cons to integration, and I made the decision not to post it. Because forcing I would have had a reverse request, a record was launched following a detection (to take this example), and I do not have the info in Jeedom. While I have the info when the action is done via Jeedom.
 
-## Changelog
+# Changelog
 - 2018-03-22: Attention, you must re-save your equipment post update. Added possibility to hide the action and status bar
 - 2018-03-07: Doc OK via Jeedom / Correction PTZ Home / Added info for SS incompatibility less than 8.0
 - 2018-02: rewrite / redesign of the plugin
