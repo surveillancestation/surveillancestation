@@ -10,7 +10,7 @@ And to display the live camera in a widget.
 - DSM 5 and later
 - Surveillance Station version 8.0 minimum (Home Mode from version 8.1)
 
-## Data visible on the Dashboard
+# Data visible on the Dashboard
 
 - **Live** : to display the live camera (resizable widget with the pencil, see FAQ)
 - **Enable or Disable** : Enable or disable a Surveillance Station camera (one or more cameras)
@@ -21,22 +21,22 @@ And to display the live camera in a widget.
 - **PTZ** : to control the camera if it is compatible. "Patrol" and "Preset Position" are also available by scenario
 - **Home Mode** : to display the status, to activate or deactivate the Home Mode by scenario (command attached to a camera, but it is a global activation / deactivation) )
 
-## Scenario
+# Scenario
 
 The commands are available when creating a scenario. Here are some examples of uses:
 
 - When activating / deactivating your alarm, it is possible to activate / deactivate automatically the Surveillance Station cameras and the Home Mode.
 - During an intrusion detection, when the alarm is triggered. It is possible to create a scenario to force the recording. And / or take one or more snapshots.
 
-## Installation / Configuration
-### Installation
+# Installation / Configuration
+## Installation
 After installing the plugin via the Market. You arrive automatically on this page:
 
-![GitHub Logo](/images/ss1.png)
+![GitHub Logo](/docs/images/ss1.png)
 
 - Click on the "Activate" button
 
-### Configuration
+## Configuration
 We will now configure the plugin.
 
 - *DNS address of your Synolgy* : address / host DNS of your Synology NAS (DSM), and not the address of Surveillance Station (Examples of addresses: MySyno.tld, dsm.chezmoi.fr.). This same address must be accessible from outside (internet) and from your local network (LAN). In the case of using a LAN IP, the only feature that will not be possible from the outside: view the Live.
@@ -45,8 +45,9 @@ We will now configure the plugin.
 - *Monitoring Station ID* : Identifier of an account with rights: "Monitoring" folder in "Permissions", "Surveillance Station" in "Applications" and a supervisory privilege in Surveillance Station
 - *Password Surveillance Station* : password associated with your username
 
-**[IMPORTANT]**
-Secure login should be used only if your certificate has been issued and verified by a Certificate Authority. The plugin is not compatible with the default self-signed certificate.
+> **[IMPORTANT]**
+>
+> Secure login should be used only if your certificate has been issued and verified by a Certificate Authority. The plugin is not compatible with the default self-signed certificate.
 
 Then, just go to the home page of the plugin configuration, and click on: Synchronization.
 
