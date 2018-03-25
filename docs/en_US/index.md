@@ -3,7 +3,7 @@
 The Surveillance Station plug-in allows you to control Surveillance Station using the official Synology API.
 And to display the live camera in a widget.
 
-![GitHub Logo](/images/ss2.png)
+![GitHub Logo](/docs/images/ss2.png)
 
 ## Compatibility
 
@@ -126,7 +126,7 @@ Before starting the config of DSM, we will prepare a URL:
 - Password, enter API key retrieved previously (apikey)
 - Apply the changes, and click on "Send SMS test message"
 
-![GitHub Logo](/images/ss7.png)
+![GitHub Logo](/surveillancestation/docs/images/ss7.png)
 
 ![GitHub Logo](/images/ss8.png)
 
