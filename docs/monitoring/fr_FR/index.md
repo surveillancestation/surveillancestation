@@ -36,7 +36,7 @@ Nous allons maintenant paramétrer un équipement. Pour se faire, cliquer sur *P
 
 Puis cliquer sur le bouton en haut à gauche *Ajouter un équipement*
 
-![GitHub Logo](/monitoring/images/Monitoring1.png)
+![GitHub Logo](/../images/Monitoring1.png)
 
 Puis saisir le nom de l'équipement (ex. Jeedom Mini)
 
@@ -49,11 +49,11 @@ Puis définir :
 - Activer (à cocher, sinon l’équipement ne sera pas utilisable)
 - Visible (optionel si vous ne désirez pas le rendre visible sur le Dashboard)
 
-![GitHub Logo](/monitoring/images/Monitoring3.png)
+![GitHub Logo](/../images/Monitoring3.png)
 
 Et sélectionner si Jeedom est local ou déporté
 
-![GitHub Logo](/monitoring/images/Monitoring9.png)
+![GitHub Logo](/../images/Monitoring9.png)
 
 Local:: permet de surveiller le Jeedom sur lequel est installé le plugin (localement)
 Déporté:: permet de monitorer un Jeedom distant (installé sur une autre machine)
@@ -67,7 +67,7 @@ Port SSH:: saisir le numéro du port SSH (par défaut il s'agit du port 22)
 Identifiant:: saisir le nom d'utilisateur qui sera utilisé pour lancer les commandes Linux
 Mot de passe:: saisir le mot de passe qui est associé au nom d'utilisateur
 
-![GitHub Logo](/monitoring/images/Monitoring4.png)
+![GitHub Logo](/../images/Monitoring4.png)
 
 > **[IMPORTANT]**
 > Vous devez choisir un identifiant avec les droits nécessaires pour lancer les commandes (en général le login "root").
@@ -78,7 +78,7 @@ Pour mettre en avant des valeurs, il est possible de coloriser certaines valeurs
 
 Les valeurs doivent correspondre à une valeur visible sur le Dashboard. Exemple : 55°C, 12% etc... Il faudra saisir seulement la valeur chiffré, sans le signe %, °C etc...
 
-![GitHub Logo](/monitoring/images/Monitoring5.png)
+![GitHub Logo](/../images/Monitoring5.png)
 
 ## Historiser
 Pour certaines valeurs, il est possible d'activer "historiser" pour représenter, par une courbe, les variations de différentes valeurs.
@@ -90,7 +90,7 @@ Historiser est possible pour :
 - Espace disque libre (porcentage)
 - Température CPU (seulement avec Jeedom Mini)
 
-![GitHub Logo](/monitoring/images/Monitoring6.png)
+![GitHub Logo](/../images/Monitoring6.png)
 
 ## Action redémarrage et extinction de l'équipemnt
 
@@ -117,7 +117,7 @@ echo "www-data ALL=NOPASSWD:/sbin/reboot" | (EDITOR="tee -a" visudo) && echo "ww
 Il suffit, lors de la configuration de l'équipement, de choisir un identifiant et mot de passe SSH avec suffisamment de droit pour lancer les deux commandes "reboot" et "poweroff"
 
 === Quelques captures
-![GitHub Logo](/monitoring/images/Monitoring8.png)
+![GitHub Logo](/../images/Monitoring8.png)
 
 # FAQ
 ### Quelle est la fréquence de rafraichissement des statuts ?
