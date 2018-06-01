@@ -28,7 +28,7 @@ A ma connaissance, voici une liste non exhautive des hardware/distribution compa
 - **CPU** : nombre de cœur, la fréquence associée et la température (température seulement si compatible)
 - **Commandes personnalisées** : permet de saisir des commandes personnalisées est d'afficher/historiser les résultats
 
-![GitHub Logo](/monitoring/images/Monitoring.png)
+![GitHub Logo](/../images/Monitoring.png)
 
 # Configuration
 
