@@ -1,4 +1,4 @@
-# Presentation
+# Presentation du plugin Surveillance Station
 
 The Surveillance Station plug-in allows you to control Surveillance Station using the official Synology API.
 And to display the live camera in a widget.
