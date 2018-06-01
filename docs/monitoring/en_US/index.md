@@ -1,200 +1,153 @@
-# Presentation
+# Présentation du plugin Monitoring
 
-The Surveillance Station plug-in allows you to control Surveillance Station using the official Synology API.
-And to display the live camera in a widget.
+Ce plugin permet de récupérer des données système et de les afficher sur le Dashboard.
 
-![GitHub Logo](/../images/ss2.png)
+Initialement, ce plugin a été créé pour monitorer seulement Jeedom Mini et Jeedom Mini+. Mais pour répondre à une forte demande, il a été rendu compatible avec un Jeedom installé sur une VM (Machine Virtuelle) ou un NAS Synology ou etc...
 
-# Compatibility
+# Compatibilité
 
-- DSM 5 and later
-- Surveillance Station version 8.0 minimum (Home Mode from version 8.1)
+A ma connaissance, voici une liste non exhautive des hardware/distribution compatible:
 
-# Data visible on the Dashboard
+- Jeedom Mini, Mini+ (surement la Center/Pro)
+- Raspberry Pi
+- Cubieboard
+- Banana Pi
+- Machine Virtuelle (VM)
+- NAS Synology
+- Linux (devrait être compatible avec beaucoup de distribution Linux)
+- Distributions spécifiques : OpenELEC, LibreElec, RasPlex et OSMC
 
-- **Live** : to display the live camera (resizable widget with the pencil, see FAQ)
-- **Enable or Disable** : Enable or disable a Surveillance Station camera (one or more cameras)
-- **Show Status** : Displays the status of the camera (Off or On)
-- **Start and stop a recording** : allows to force a recording (automatically store in Surveillance Station)
-- **Snapshot** : Take a snapshot of the camera at the time of the request (automatically store in Surveillance Station)
-- **Enable or Disable motion detection** : Enables or disables motion detection by scenario (by Surveillance Station or by Camera) ONLY when the camera is activated
-- **PTZ** : to control the camera if it is compatible. "Patrol" and "Preset Position" are also available by scenario
-- **Home Mode** : to display the status, to activate or deactivate the Home Mode by scenario (command attached to a camera, but it is a global activation / deactivation) )
+# Données visibles sur le Dashboard :
 
-# Scenario
+- **Distribution** : Nom et version du système d'exploitation Linux, architecture 32 ou 64 bits, et le type microprocesseur
+- **Démarré depuis uptime** : informe depuis combien de temps Jeedom est démarré
+- **Charge système** : Load average (plus d'information voir FAQ)
+- **Mémoire** : mémoire vive total et utilisée
+- **Réseau** : taux en MiB des données transmises et reçues
+- **Espace disque total et utilisé** : l'espace disque de la carte SD ou du disque dur pour les VM et NAS Synology
+- **CPU** : nombre de cœur, la fréquence associée et la température (température seulement si compatible)
+- **Commandes personnalisées** : permet de saisir des commandes personnalisées est d'afficher/historiser les résultats
 
-The commands are available when creating a scenario. Here are some examples of uses:
+![GitHub Logo](/../images/Monitoring.png)
 
-- When activating / deactivating your alarm, it is possible to activate / deactivate automatically the Surveillance Station cameras and the Home Mode.
-- During an intrusion detection, when the alarm is triggered. It is possible to create a scenario to force the recording. And / or take one or more snapshots.
+# Configuration
 
-# Installation / Configuration
-## Installation
-After installing the plugin via the Market. You arrive automatically on this page:
+Nous allons maintenant paramétrer un équipement. Pour se faire, cliquer sur *Plugins / Jeedom Box / Monitoring*
 
-![GitHub Logo](/../images/ss1.png)
+Puis cliquer sur le bouton en haut à gauche *Ajouter un équipement*
 
-- Click on the "Activate" button
+![GitHub Logo](/../images/Monitoring1.png)
 
-## Configuration
-We will now configure the plugin.
+Puis saisir le nom de l'équipement (ex. Jeedom Mini)
 
-- *DNS address of your Synolgy* : address / host DNS of your Synology NAS (DSM), and not the address of Surveillance Station (Examples of addresses: MySyno.tld, dsm.chezmoi.fr.). This same address must be accessible from outside (internet) and from your local network (LAN). In the case of using a LAN IP, the only feature that will not be possible from the outside: view the Live.
-- *Port number* : Port number that is associated with your address (example: 443 for https)
-- *Secure login* : Check if you use the https with a issued and verified certificate
-- *Monitoring Station ID* : Identifier of an account with rights: "Monitoring" folder in "Permissions", "Surveillance Station" in "Applications" and a supervisory privilege in Surveillance Station
-- *Password Surveillance Station* : password associated with your username
+![GitHub Logo](/monitoring/images/Monitoring2.png)
+
+Puis définir :
+
+- Objet parent
+- Catégorie (optionnelle)
+- Activer (à cocher, sinon l’équipement ne sera pas utilisable)
+- Visible (optionel si vous ne désirez pas le rendre visible sur le Dashboard)
+
+![GitHub Logo](/../images/Monitoring3.png)
+
+Et sélectionner si Jeedom est local ou déporté
+
+![GitHub Logo](/../images/Monitoring9.png)
+
+Local:: permet de surveiller le Jeedom sur lequel est installé le plugin (localement)
+Déporté:: permet de monitorer un Jeedom distant (installé sur une autre machine)
+
+## Choix déporté
+
+Après avoir sélectionné ce mode, 4 champs supplémentaires s'affichent :
+
+Adresse IP:: saisir l'adresse IP de la machine distante
+Port SSH:: saisir le numéro du port SSH (par défaut il s'agit du port 22)
+Identifiant:: saisir le nom d'utilisateur qui sera utilisé pour lancer les commandes Linux
+Mot de passe:: saisir le mot de passe qui est associé au nom d'utilisateur
+
+![GitHub Logo](/../images/Monitoring4.png)
 
 > **[IMPORTANT]**
->
-> Secure login should be used only if your certificate has been issued and verified by a Certificate Authority. The plugin is not compatible with the default self-signed certificate.
+> Vous devez choisir un identifiant avec les droits nécessaires pour lancer les commandes (en général le login "root").
+> Pour un NAS Synology, il faut utiliser le login disposant des droits administrateur.
 
-Then, just go to the home page of the plugin configuration, and click on: Synchronization.
+## Coloration des valeurs
+Pour mettre en avant des valeurs, il est possible de coloriser certaines valeurs.
 
-Once synchronization is complete, your cameras should appear in the "My Surveillance Station Cameras" area
+Les valeurs doivent correspondre à une valeur visible sur le Dashboard. Exemple : 55°C, 12% etc... Il faudra saisir seulement la valeur chiffré, sans le signe %, °C etc...
 
-Then define for each camera:
+![GitHub Logo](/../images/Monitoring5.png)
 
-- Parent object
-- Category (optional)
-- Activate (Yes, otherwise the equipment will not be usable)
-- Visible (optional if you do not want to make it visible on the Dashboard, but it will be usable in a scenario and visible in the panel)
+## Historiser
+Pour certaines valeurs, il est possible d'activer "historiser" pour représenter, par une courbe, les variations de différentes valeurs.
 
-# Tips
-## Alert Jeedom of a detection from Surveillance Station
-It is possible to set in Synology's Surveillance Station the call of an externet url (your Jeedom) in case of alert motion detection. To do so, you have to go to Surveillance Station, and add a rule of action.
+Historiser est possible pour :
 
-![GitHub Logo](/../images/ss10.png)
+- Charge système (Load average)
+- Mémoire libre (pourcentage)
+- Espace disque libre (porcentage)
+- Température CPU (seulement avec Jeedom Mini)
 
-Then enter the url of the command you want to launch in case of detection (example for a command with id 915 : http://dns_de_votre_jeedom/core/api/jeeApi.php?apikey=b8F......Hb7&type=cmd&id=915
+![GitHub Logo](/../images/Monitoring6.png)
 
-## Alert Jeedom of activation and deactivation of Home Mode
-It is possible to have Surveillance Station alert Jeedom when changing the Home Mode status, using the rule, in Surveillance Station.
-And so, to make the two applications cohabit:
+## Action redémarrage et extinction de l'équipemnt
 
-- to alert Jeedom in case of manual change made directly in Surveillance Station
-- to alert Jeedom when enabling or disabling Home Mode by Geofence
-- to order Jeedom's Surveillance Station
+### Mode local
 
-To begin, we will recover the 2 API URLs of Jeedom to launch the commands to activate / deactivate Home Mode. Simply :
+Il est nécessaire de donner les droits à l'utilisateur "www-data" de lancer les commandes "reboot" et "poweroff". Pour ce faire, deux méthodes :
 
-- go to the configuration of one of your cameras
-- go to the "Orders" tab
-- click on the gear for the two commands "Active Home Mode" and "Disable Home Mode"
-- Copy the "Direct URLs", and paste them into a notepad for example
+- soit donner les droits "root" à l'utilisateur "www-data" (solution préconisée par Jeedom)
 
-We finished Jeedom. Note that you can also use a virtual to retrieve the information that will come from Surveillance Station
+----
+sudo su -
+echo "www-data ALL=(ALL) NOPASSWD: ALL" | (EDITOR="tee -a" visudo)
+----
 
-We will now configure Surveillance Station by adding two "Rule of Action".
+- soit donner à l'utilisateur "www-data" les droits "root" seulement pour les commandes "reboot" et "poweroff"
 
-Here is the explanation for the Jeedom "Active Home Mode" command (to be renewed for deactivation)
+----
+sudo su -
+echo "www-data ALL=NOPASSWD:/sbin/reboot" | (EDITOR="tee -a" visudo) && echo "www-data ALL=NOPASSWD:/sbin/poweroff" | (EDITOR="tee -a" visudo)
+----
 
-- launch "Rule of Action"
-- click on add
-- enter a name (for example: push activation Home Mode), do not modify the rest, and click on Next
-- Event source, choose: Surveillance Station
-- Event : select "Access Home Mode", then click on Next
-- Action Device : choose "External Device"
-- Url : paste the URL of the Jeedom "Active Home Mode" command, then click Next
-- Programmer : personally, I leave Active everywhere since I use home automation or Geofense for management.
+### Mode déporté
 
-## Receive SMS from DSM / SS using Jeedom's SMS plugin
-It is possible to configure DSM and SS to launch SMS notifications using Jeedom with the SMS plugin.
-Just add Jeedom as an SMS service provider.
+Il suffit, lors de la configuration de l'équipement, de choisir un identifiant et mot de passe SSH avec suffisamment de droit pour lancer les deux commandes "reboot" et "poweroff"
 
-Before starting the config of DSM, we will prepare a URL:
-
-- get the URL of the corresponding command: config plugin SMS, tab "Orders", click on the gear, and copy the direct URL
-- You must set aside the following information that is contained in the URL: apikey and id
-
-
-- in DSM (the configuration can be automatically taken over in SS)
-- go to "Control Panel"
-- then "Notification"
-- tick "Enable SMS notifications"
-- click on "Add SMS Service Provider"
-- enter a name, example: Jeedom
-- Paste the URL by modifying only the IP of your Jeedom: http://10.73.73.100/core/api/jeeApi.php?apikey=&type=cmd&id=&title=Synology&junk=junk&message=Hello+world
-- click on next
-- For apikey =: select Password
-- For type = cmd =: let Other
-- For id =: select User Name
-- For title =: let other
-- For junk = junk: select Phone number
-- For message = Hello + world: select Message content
-- and click Finish / Apply
-- User name, enter the id of the command previously retrieved (id)
-- Password, enter API key retrieved previously (apikey)
-- Apply the changes, and click on "Send SMS test message"
-
-![GitHub Logo](/../images/ss7.png)
-
-![GitHub Logo](../images/ss8.png)
-
-![GitHub Logo](/../images/ss9.png)
+=== Quelques captures
+![GitHub Logo](/../images/Monitoring8.png)
 
 # FAQ
-### What is the frequency of refreshing the statutes?
-The plugin updates the information every 5 minutes (modifiable in the "Task Engine")
+### Quelle est la fréquence de rafraichissement des statuts ?
+Le plugin actualise les informations toutes les 5 minutes (modifiable dans le "Moteur de tâches")
 
-### I do not see my predefined positions, and my patrols when creating a scenario:
-as soon as you create a new position or patrol, you have to restart a synchronization via the plugin. Update the list in your scenarios.
+### Quelle est la fréquence de rafraichissement des informations ?
+Le plugin actualise les informations toutes les 15min (00, 15, 30 et 45).
 
-### I get an error when I request the activation or deactivation of the camera or an error code 117:
-the identifier certainly does not have the right privileges in Surveillance Station. Change viewer privilege to director
+### Quelle est la signification de Charge système (Load average) ?
+Pour plus d'information : http://fr.wikipedia.org/wiki/Load_average[Wikipédia]
 
-### I get an error code 105:
-the ID does not have rights to use the Surveillance Station application (config panel / User / edit user / Application tab / Check Station check)
+### Est-il possible de Monitorer VMware ESXi ?
+A ce jour non, ESXi n'utilise pas les commandes linux classiques. Si une forte demande se fait ressentir, pourquoi pas...
 
-### I get a 401 error code:
-the identifier is surely disabled in Surveillance Station. I advise you to use a unique identifier with rights: folder "monitoring" in "permissions", "Surveillance Station" in "Applications" and a privilege director in Surveillance Station
+### Pendant la mise à jour du plugin, j'obtiens une erreur :
+cat: /sys/devices/platform/sunxi-i2c.0/i2c-0/0-0034/temp1_input: No such file or directory
+Si vous avez Jeedom Cubieboard. Ne pas tenir compte de cette erreur, elle permet de capter la température du Banana Pi (qui est reconnu comme un Cubieboard).
+Aucun problème sur le fonctionnement du plugin
 
-### I get a 407 error code:
-login is blocked (config panel / Security / account tab / Allow / Block list / Blog list tab)
-
-### I get an error: Connection refused
-Make sure that the address and the port correspond to your Synology, and not to Surveillance Station
-
-### The Live's poster is overflowing with the widget (or too big / small), I want to resize the size. How to do ?
-You can resize the widget size with the pencil at the top right on the Dashboard.
-
-### Resizing the Widget of my Live Camera does not work. What to do ?
-Resizing is effective only after refreshing the page. For ease of adjustment, I advise you to choose a size of the Widget "camera off". And reactivate the camera, then refresh Dashboard again.
-
-### In HTTPS, the live camera is not displayed. What to do ?
-You certainly have a self-signed certificate (to check it, in DSM / Control Panel / Security / Certificate). In this case, the plugin is not compatible (it is possible to add an exception in your Internet browser, but this solution may not work on your mobile). I advise you to go through a certification authority. There are for example "StartSSL", "CAcert" and "Let's Encrypt" which offer a valid and free certificate (to be renewed once in a while according to the authority)
-
-### Enabling and disabling the camera does not work. What to do ?
-Check the user's privileges in Surveillance Station (probably as Spectator, to be changed to Director).
-
-### Can not disable or enable motion detection. What to do ?
-Activation or deactivation only works when the camera is activated. It is therefore necessary to activate the camera before modifying this parameter.
-
-### Why do not I have the status of a recording in progress?
-- I have not identified a return of info to recover a status of a recording in progress (or not) in the API (certainly passes to redo)
-- I can especially do it if the action is done by Jeedom, but when is it if the recording was started by some other way ..
-- even if a status was available in the doc, the latter would be updated only every 5min if the recording was launched by another means.
-
-Basically, there is pros and cons to integration, and I made the decision not to post it. Because forcing I would have had a reverse request, a record was launched following a detection (to take this example), and I do not have the info in Jeedom. While I have the info when the action is done via Jeedom.
+### J'obtiens des erreurs dans cron_execution lors de la récupération de la température CPU
+Comme par exemple  : cat: /sys/devices/virtual/thermal/thermal_zone0/temp: Aucun fichier ou dossier de ce type
+Votre équipement est certainement incompatible pour récupérer cette donnée. Pour éviter les logs d'erreurs, il suffit de décocher : "afficher" sur la commande "Température CPU" de votre équipement.
+Et pour une prise en compte immédiate, il faut effectuer 2 sauvegardes de la configuration.
 
 # Changelog
-- 2018-03-22: Attention, you must re-save your equipment post update. Added possibility to hide the action and status bar
-- 2018-03-07: Doc OK via Jeedom / Correction PTZ Home / Added info for SS incompatibility less than 8.0
-- 2018-02: rewrite / redesign of the plugin
-- 2017-09: removes info.xml
-- 2017-05: adding the info plugin file in json
-- 2016-11: addition of some PTZ commands (pending a redesign)
-- 2016-10: adding advanced display
-- 2.7: dependency fixes for Debian Wheezy
-- 2.6: Compatibility correction with complex password (special characters). Automation of the installation of dependencies
-- 2.5: addition activation or deactivation motion detection
-- 2.4: Improved Resize Dashboard widget + Mobile widget fix
-- 2.3: New logo (thanks Alois), redesign of the documentation and bug fix
-- 2.2: Separation protocol http / https Internal / External network. Resizable live camera widget. New switches on the buttons enable / visible / log in the config
-- 2.1: Fixed a bug with cameras that have an accented name.
-- 2: Add feature: Live cameras, possibility to request a recording for x minutes, bug fixes
-- 1.6: Added feature: Ability to specify a recording time. Added recording status in the cameras refresh list every 10 seconds on the equipment view.
-- 1.5.1: Bug fixes, adding logs
-- 1.5: Bug fixes: -Encoding of the mail (problem accents) -Problem preventing the test of the token dropbox -Problem when renaming a camera in dropbox -Problem display in the list of cameras
-- 1.4: adding documentation
-- 1.3: migration of the mail sending code, from Ruby to PHP + addition of historical status + ranking on the Dashboard
+- 06-2018 : correction de la mémoire libre et du pourcentage pour Debian 9 (stretch)
+- 10-2017 : suppression du mode expert
+- 09-2017 : ajout compatibilité Edgerouter et suppression info.xml
+- 05-2017 : ajout de la possibilité de cocher (ou pas) "Afficher" sur la ligne "Température CPU"
+- 04-2017 : fixe erreur dans les logs pour la température CPU
+- 12-2016 : fixe Chrome version 55
+- correction bug avec l'affichage avancé
+- suppression bootstrapdwitch
