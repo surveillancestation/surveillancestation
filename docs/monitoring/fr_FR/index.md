@@ -1,4 +1,4 @@
-# Présentation
+# Présentation du plugin Monitoring
 
 Ce plugin permet de récupérer des données système et de les afficher sur le Dashboard.
 
