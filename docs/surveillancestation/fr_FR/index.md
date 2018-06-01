@@ -1,4 +1,4 @@
-# Présentation
+# Présentation du plugin Surveillance Station
 
 Le plugin Surveillance Station permet de commander Surveillance Station en utilisant l’API officielle de Synology.
 Et d’afficher la caméra en direct (live) dans un widget.
