@@ -1,94 +1,93 @@
-# Présentation du plugin Monitoring
+# Presentation of the Monitoring plugin
 
-Ce plugin permet de récupérer des données système et de les afficher sur le Dashboard.
+This plugin allows you to recover system data and display it on the Dashboard.
 
-Initialement, ce plugin a été créé pour monitorer seulement Jeedom Mini et Jeedom Mini+. Mais pour répondre à une forte demande, il a été rendu compatible avec un Jeedom installé sur une VM (Machine Virtuelle) ou un NAS Synology ou etc...
+Initially, this plugin was created to monitor only Jeedom Mini and Jeedom Mini +. But to meet a high demand, it has been made compatible with a Jeedom installed on a VM (Virtual Machine) or a Synology NAS or etc ...
 
-# Compatibilité
+# Compatibility
 
-A ma connaissance, voici une liste non exhautive des hardware/distribution compatible:
+To my knowledge, here is a non-exhaustive list of hardware / compatible distribution:
 
-- Jeedom Mini, Mini+ (surement la Center/Pro)
+- Jeedom Mini, Mini+ (surely the Smart/Pro)
 - Raspberry Pi
 - Cubieboard
 - Banana Pi
 - Machine Virtuelle (VM)
 - NAS Synology
-- Linux (devrait être compatible avec beaucoup de distribution Linux)
-- Distributions spécifiques : OpenELEC, LibreElec, RasPlex et OSMC
+- Linux (should be compatible with a lot of Linux distribution)
+- Specific distributions : OpenELEC, LibreElec, RasPlex et OSMC
 
-# Données visibles sur le Dashboard :
+# Data visible on the Dashboard :
 
-- **Distribution** : Nom et version du système d'exploitation Linux, architecture 32 ou 64 bits, et le type microprocesseur
-- **Démarré depuis uptime** : informe depuis combien de temps Jeedom est démarré
-- **Charge système** : Load average (plus d'information voir FAQ)
-- **Mémoire** : mémoire vive total et utilisée
-- **Réseau** : taux en MiB des données transmises et reçues
-- **Espace disque total et utilisé** : l'espace disque de la carte SD ou du disque dur pour les VM et NAS Synology
-- **CPU** : nombre de cœur, la fréquence associée et la température (température seulement si compatible)
-- **Commandes personnalisées** : permet de saisir des commandes personnalisées est d'afficher/historiser les résultats
+- **Distribution**: Name and version of the Linux operating system, 32 or 64 bit architecture, and the microprocessor type
+- **Started since uptime**: inform for how long Jeedom is started
+- **System load**: Load average (more information see FAQ)
+- **Memory**: total RAM and used
+- **Network**: MiB rate of transmitted and received data
+- **Total and used disk space**: Disk space of SD card or hard disk for Synology VMs and NAS
+- **CPU**: number of core, associated frequency and temperature (temperature only if compatible)
+- **Custom Commands**: lets you enter custom commands is to display / historize the results
 
 ![GitHub Logo](/../images/Monitoring.png)
 
 # Configuration
 
-Nous allons maintenant paramétrer un équipement. Pour se faire, cliquer sur *Plugins / Jeedom Box / Monitoring*
+We will now configure a device. To do this, click on "Plugins/Jeedom Box/Monitoring*
 
-Puis cliquer sur le bouton en haut à gauche *Ajouter un équipement*
+Then click on the button at the top left "Add equipment"
 
 ![GitHub Logo](/../images/Monitoring1.png)
 
-Puis saisir le nom de l'équipement (ex. Jeedom Mini)
+Then enter the name of the equipment (eg Jeedom Mini)
 
 ![GitHub Logo](/monitoring/images/Monitoring2.png)
 
-Puis définir :
+Then define:
 
-- Objet parent
-- Catégorie (optionnelle)
-- Activer (à cocher, sinon l’équipement ne sera pas utilisable)
-- Visible (optionel si vous ne désirez pas le rendre visible sur le Dashboard)
+- Parent object
+- Category (optional)
+- Activate (check, otherwise the equipment will not be usable)
+- Visible (optional if you do not want to make it visible on the Dashboard)
 
 ![GitHub Logo](/../images/Monitoring3.png)
 
-Et sélectionner si Jeedom est local ou déporté
+And select if Jeedom is local or deported
 
 ![GitHub Logo](/../images/Monitoring9.png)
 
-Local:: permet de surveiller le Jeedom sur lequel est installé le plugin (localement)
-Déporté:: permet de monitorer un Jeedom distant (installé sur une autre machine)
+Local :: allows to monitor the Jeedom on which the plugin is installed (locally)
+Remote :: allows to monitor a remote Jeedom (installed on another machine)
 
-## Choix déporté
+## Deported Choice
+After selecting this mode, 4 additional fields are displayed:
 
-Après avoir sélectionné ce mode, 4 champs supplémentaires s'affichent :
-
-Adresse IP:: saisir l'adresse IP de la machine distante
-Port SSH:: saisir le numéro du port SSH (par défaut il s'agit du port 22)
-Identifiant:: saisir le nom d'utilisateur qui sera utilisé pour lancer les commandes Linux
-Mot de passe:: saisir le mot de passe qui est associé au nom d'utilisateur
+IP address :: enter the IP address of the remote machine
+SSH port :: enter SSH port number (default is port 22)
+ID :: enter the username that will be used to launch Linux commands
+Password :: enter the password that is associated with the username
 
 ![GitHub Logo](/../images/Monitoring4.png)
 
 > **[IMPORTANT]**
-> Vous devez choisir un identifiant avec les droits nécessaires pour lancer les commandes (en général le login "root").
-> Pour un NAS Synology, il faut utiliser le login disposant des droits administrateur.
+> You must choose an identifier with the necessary rights to launch the commands (usually the login "root").
+> For a Synology NAS, use the login with administrator rights.
 
-## Coloration des valeurs
-Pour mettre en avant des valeurs, il est possible de coloriser certaines valeurs.
+## Staining of values
+To highlight values, it is possible to colorize certain values.
 
-Les valeurs doivent correspondre à une valeur visible sur le Dashboard. Exemple : 55°C, 12% etc... Il faudra saisir seulement la valeur chiffré, sans le signe %, °C etc...
+The values must match a value visible on the Dashboard. Example: 55 ° C, 12% etc ... It will enter only the encrypted value, without the sign%, ° C etc ...
 
 ![GitHub Logo](/../images/Monitoring5.png)
 
-## Historiser
-Pour certaines valeurs, il est possible d'activer "historiser" pour représenter, par une courbe, les variations de différentes valeurs.
+## historicize
+For some values, it is possible to activate "historiser" to represent, by a curve, the variations of different values.
 
-Historiser est possible pour :
+Historiser is possible for:
 
-- Charge système (Load average)
-- Mémoire libre (pourcentage)
-- Espace disque libre (porcentage)
-- Température CPU (seulement avec Jeedom Mini)
+- System load (Load average)
+- Free memory (percentage)
+- Free disk space (percentage)
+- CPU temperature (only with Jeedom Mini)
 
 ![GitHub Logo](/../images/Monitoring6.png)
 
