@@ -8,7 +8,7 @@ Initialement, ce plugin a été créé pour monitorer seulement Jeedom Mini et J
 
 A ma connaissance, voici une liste non exhautive des hardware/distribution compatible:
 
-- Jeedom Mini, Mini+ (surement la Center/Pro)
+- Jeedom Mini, Mini+ (surement la Smart/Pro)
 - Raspberry Pi
 - Cubieboard
 - Banana Pi
@@ -98,16 +98,15 @@ Historiser est possible pour :
 
 Il est nécessaire de donner les droits à l'utilisateur "www-data" de lancer les commandes "reboot" et "poweroff". Pour ce faire, deux méthodes :
 
+----
 - soit donner les droits "root" à l'utilisateur "www-data" (solution préconisée par Jeedom)
 
-----
 sudo su -
 echo "www-data ALL=(ALL) NOPASSWD: ALL" | (EDITOR="tee -a" visudo)
-----
 
+----
 - soit donner à l'utilisateur "www-data" les droits "root" seulement pour les commandes "reboot" et "poweroff"
 
-----
 sudo su -
 echo "www-data ALL=NOPASSWD:/sbin/reboot" | (EDITOR="tee -a" visudo) && echo "www-data ALL=NOPASSWD:/sbin/poweroff" | (EDITOR="tee -a" visudo)
 ----
@@ -116,7 +115,7 @@ echo "www-data ALL=NOPASSWD:/sbin/reboot" | (EDITOR="tee -a" visudo) && echo "ww
 
 Il suffit, lors de la configuration de l'équipement, de choisir un identifiant et mot de passe SSH avec suffisamment de droit pour lancer les deux commandes "reboot" et "poweroff"
 
-=== Quelques captures
+# Quelques captures
 ![GitHub Logo](/../images/Monitoring8.png)
 
 # FAQ
@@ -143,7 +142,7 @@ Votre équipement est certainement incompatible pour récupérer cette donnée. 
 Et pour une prise en compte immédiate, il faut effectuer 2 sauvegardes de la configuration.
 
 # Changelog
-- 06-2018 : correction de la mémoire libre et du pourcentage pour Debian 9 (stretch)
+- 06-2018 : correction de la mémoire libre et du pourcentage pour Debian 9 (stretch). Et ajout du choix du sous-type pour les commandes "Perso"
 - 10-2017 : suppression du mode expert
 - 09-2017 : ajout compatibilité Edgerouter et suppression info.xml
 - 05-2017 : ajout de la possibilité de cocher (ou pas) "Afficher" sur la ligne "Température CPU"
