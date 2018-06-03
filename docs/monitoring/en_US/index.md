@@ -91,62 +91,61 @@ Historiser is possible for:
 
 ![GitHub Logo](/../images/Monitoring6.png)
 
-## Action redémarrage et extinction de l'équipemnt
+## Start and stop action of the equipment
 
-### Mode local
+### Local mode
 
-Il est nécessaire de donner les droits à l'utilisateur "www-data" de lancer les commandes "reboot" et "poweroff". Pour ce faire, deux méthodes :
-
-- soit donner les droits "root" à l'utilisateur "www-data" (solution préconisée par Jeedom)
+It is necessary to give the rights to the user "www-data" to launch the commands "reboot" and "poweroff". To do this, two methods:
 
 ----
+- give the "root" rights to the user "www-data" (solution recommended by Jeedom)
+
 sudo su -
 echo "www-data ALL=(ALL) NOPASSWD: ALL" | (EDITOR="tee -a" visudo)
-----
-
-- soit donner à l'utilisateur "www-data" les droits "root" seulement pour les commandes "reboot" et "poweroff"
 
 ----
+- give the user "www-data" the "root" rights only for the "reboot" and "poweroff" commands
+
 sudo su -
 echo "www-data ALL=NOPASSWD:/sbin/reboot" | (EDITOR="tee -a" visudo) && echo "www-data ALL=NOPASSWD:/sbin/poweroff" | (EDITOR="tee -a" visudo)
 ----
 
-### Mode déporté
+### Deported mode
 
-Il suffit, lors de la configuration de l'équipement, de choisir un identifiant et mot de passe SSH avec suffisamment de droit pour lancer les deux commandes "reboot" et "poweroff"
+When setting up the equipment, simply select an SSH identifier and password with sufficient rights to launch both reboot and poweroff commands.
 
-=== Quelques captures
+# Some catches
 ![GitHub Logo](/../images/Monitoring8.png)
 
 # FAQ
-### Quelle est la fréquence de rafraichissement des statuts ?
-Le plugin actualise les informations toutes les 5 minutes (modifiable dans le "Moteur de tâches")
+### What is the frequency of refreshing the statutes?
+The plugin updates the information every 5 minutes (modifiable in the "Task Engine")
 
-### Quelle est la fréquence de rafraichissement des informations ?
-Le plugin actualise les informations toutes les 15min (00, 15, 30 et 45).
+### What is the frequency of refreshing information?
+The plugin updates the information every 15min (00, 15, 30 and 45).
 
-### Quelle est la signification de Charge système (Load average) ?
-Pour plus d'information : http://fr.wikipedia.org/wiki/Load_average[Wikipédia]
+### What is the meaning of Load average?
+For more information: http://fr.wikipedia.org/wiki/Load_average[Wikipedia]
 
-### Est-il possible de Monitorer VMware ESXi ?
-A ce jour non, ESXi n'utilise pas les commandes linux classiques. Si une forte demande se fait ressentir, pourquoi pas...
+### Is it possible to Monitor VMware ESXi?
+To this day, ESXi does not use traditional linux commands. If a strong demand is felt, why not ...
 
-### Pendant la mise à jour du plugin, j'obtiens une erreur :
+### While updating the plugin, I get an error:
 cat: /sys/devices/platform/sunxi-i2c.0/i2c-0/0-0034/temp1_input: No such file or directory
-Si vous avez Jeedom Cubieboard. Ne pas tenir compte de cette erreur, elle permet de capter la température du Banana Pi (qui est reconnu comme un Cubieboard).
-Aucun problème sur le fonctionnement du plugin
+If you have Jeedom Cubieboard. Ignoring this error, it captures the temperature of the Banana Pi (which is recognized as a Cubieboard).
+No problem on the plugin operation
 
-### J'obtiens des erreurs dans cron_execution lors de la récupération de la température CPU
-Comme par exemple  : cat: /sys/devices/virtual/thermal/thermal_zone0/temp: Aucun fichier ou dossier de ce type
-Votre équipement est certainement incompatible pour récupérer cette donnée. Pour éviter les logs d'erreurs, il suffit de décocher : "afficher" sur la commande "Température CPU" de votre équipement.
-Et pour une prise en compte immédiate, il faut effectuer 2 sauvegardes de la configuration.
+### I get errors in cron_execution when recovering the CPU temperature
+For example: cat: / sys / devices / virtual / thermal / thermal_zone0 / temp: No file or folder of this type
+Your equipment is certainly incompatible to recover this data. To avoid error logs, simply uncheck: "display" on the "CPU temperature" command of your equipment.
+And for immediate consideration, you must make 2 backups of the configuration.
 
 # Changelog
-- 06-2018 : correction de la mémoire libre et du pourcentage pour Debian 9 (stretch)
-- 10-2017 : suppression du mode expert
-- 09-2017 : ajout compatibilité Edgerouter et suppression info.xml
-- 05-2017 : ajout de la possibilité de cocher (ou pas) "Afficher" sur la ligne "Température CPU"
-- 04-2017 : fixe erreur dans les logs pour la température CPU
-- 12-2016 : fixe Chrome version 55
-- correction bug avec l'affichage avancé
-- suppression bootstrapdwitch
+- 06-2018: correction of free memory and percentage for Debian 9 (stretch). And adding the choice of subtype for "Custom" commands
+- 10-2017: removal of expert mode
+- 09-2017: adding Edgerouter compatibility and info.xml removal
+- 05-2017: addition of the possibility to check (or not) "Show" on the line "CPU temperature"
+- 04-2017: Fixed error in the logs for CPU temperature
+- 12-2016: fixed Chrome version 55
+- bug fix with advanced display
+- bootstrapdwitch removal
