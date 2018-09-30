@@ -178,6 +178,7 @@ Activation or deactivation only works when the camera is activated. It is theref
 Basically, there is pros and cons to integration, and I made the decision not to post it. Because forcing I would have had a reverse request, a record was launched following a detection (to take this example), and I do not have the info in Jeedom. While I have the info when the action is done via Jeedom.
 
 # Changelog
+- 2018-09 : Added 2-step verification of authentication (optional)
 - 2018-03-22: Attention, you must re-save your equipment post update. Added possibility to hide the action and status bar
 - 2018-03-07: Doc OK via Jeedom / Correction PTZ Home / Added info for SS incompatibility less than 8.0
 - 2018-02: rewrite / redesign of the plugin
