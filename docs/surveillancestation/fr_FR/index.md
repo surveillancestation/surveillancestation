@@ -178,6 +178,7 @@ L’activation ou la désactivation fonctionne seulement quand la caméra est ac
 En gros, il y a du pour et du contre à l'intégration, et j'ai pris la décision de ne pas l'afficher. Car forcement j'aurais eue une demande inverse, un enregistrement a été lancé suite à une détection (pour prendre cet exemple), et je n'ai pas l'info dans Jeedom. Alors que j'ai l'info quand l'action est faite via Jeedom.
 
 # Changelog
+- 2018-09 : Ajout de la vérification en 2 étapes de l'authentification (optionnelle)
 - 2018-03-22 : Attention, il faut re-sauvegarder vos équipements post mise à jour. Ajouts possibilité de masquer la barre des actions et des statuts
 - 2018-03-07 : Doc OK en passant par Jeedom / Correction PTZ Home / Ajout d'une info pour l'incompatibilité SS inférieur à 8.0
 - 2018-02 : réécriture/refonte complète du plugin
