@@ -141,6 +141,7 @@ Your equipment is certainly incompatible to recover this data. To avoid error lo
 And for immediate consideration, you must make 2 backups of the configuration.
 
 # Changelog
+- 09-2019 : add Panel Mobile
 - 07-2018 : adding a dedicated cron
 - 06-2018: correction of free memory and percentage for Debian 9 (stretch). And adding the choice of subtype for "Custom" commands
 - 10-2017: removal of expert mode
