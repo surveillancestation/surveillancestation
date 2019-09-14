@@ -142,6 +142,7 @@ Votre équipement est certainement incompatible pour récupérer cette donnée. 
 Et pour une prise en compte immédiate, il faut effectuer 2 sauvegardes de la configuration.
 
 # Changelog
+- 09-2019 : ajout Panel desktop et mobile, compatible Jeedom V4
 - 07-2018 : ajout d'un cron dédié
 - 06-2018 : correction de la mémoire libre et du pourcentage pour Debian 9 (stretch). Et ajout du choix du sous-type pour les commandes "Perso"
 - 10-2017 : suppression du mode expert
