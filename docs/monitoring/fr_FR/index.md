@@ -142,6 +142,8 @@ Votre équipement est certainement incompatible pour récupérer cette donnée. 
 Et pour une prise en compte immédiate, il faut effectuer 2 sauvegardes de la configuration.
 
 # Changelog
+- 01-2021 : compatibilité de l'information HDD avec les Raspberry Pi zero (armv6l) sur Jeedom v4.x 
+- 01-2021 : compatibilité du panel avec Jeedom v4.x
 - 01-2021 : compatibilité du codage des couleurs (vert et rouge) avec adaptation automatique suivant le thème (pour les interfaces : Dashboard et mobile)
 - 09-2019 : ajout Panel desktop et mobile, compatible Jeedom V4
 - 07-2018 : ajout d'un cron dédié
