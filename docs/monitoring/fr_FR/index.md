@@ -142,6 +142,7 @@ Votre équipement est certainement incompatible pour récupérer cette donnée. 
 Et pour une prise en compte immédiate, il faut effectuer 2 sauvegardes de la configuration.
 
 # Changelog
+- 10-2023 : Ajout de la compatibilité avec Debian 12. Il est nécessaire de réinstaller les dépendances du plugin.
 - 01-2021 : Ajout récupération température, et correction taille volume pour Synology. Correction affiche taille pour les HDD (Merci Superbricolo)
 - 01-2021 : compatibilité du codage des couleurs (vert et rouge) avec adaptation automatique suivant le thème (pour les interfaces : Dashboard et mobile)(Merci Fabrice)
 - 09-2019 : ajout Panel desktop et mobile, compatible Jeedom V4
