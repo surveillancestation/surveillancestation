@@ -1,5 +1,5 @@
 <?php
-error_reporting(E_ALL);
+
 /* This file is part of Jeedom.
  *
  * Jeedom is free software: you can redistribute it and/or modify
@@ -16,1000 +16,1263 @@ error_reporting(E_ALL);
  * along with Jeedom. If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*
+SYNO.SurveillanceStation.Camera							: Surveillance Station 6.0-2337
+SYNO.SurveillanceStation.SnapShot						: Surveillance Station 6.0-2337
+SYNO.SurveillanceStation.PTZ								: Surveillance Station 6.0-2337
+SYNO.SurveillanceStation.ExternalRecording	: Surveillance Station 6.0-2337
+SYNO.SurveillanceStation.VideoStream				: Surveillance Station 6.3
+SYNO.Surveillance.Camera.Event							: Surveillance Station 7.0
+SYNO.SurveillanceStation.HomeMode						: Surveillance Station 8.1.0
+
+*/
+
 /* * ***************************Includes********************************* */
 require_once dirname(__FILE__) . '/../../../../core/php/core.inc.php';
+define('__SSPLGBASE__', dirname(dirname(__DIR__)));
 
-use \Dropbox as dbx;
+class surveillanceStation extends eqLogic {
+	/*     * *************************Attributs****************************** */
 
-class surveillanceStation extends eqLogic
-{
-    public static function cron5()
-    {
-        foreach (eqLogic::byType('surveillanceStation') as $surveillanceStation) {
+	private static $_sid = null;
+	private static $_api_info = null;
 
-            if (is_object($surveillanceStation)) {
-                foreach ($surveillanceStation->getCmd('info') as $cmd) {
-                    $cmd->event($cmd->execute());
-                    $cmd->save();
-                }
-            }
-        }
-    }
+	/*     * ***********************Methode static*************************** */
 
-	public static function dependancy_info() {
-		$return = array();
-		$return['log'] = 'surveillanceStation_update';
-		$return['progress_file'] = '/tmp/dependancy_ruby_in_progress';
-		if (file_exists('/tmp/dependancy_ruby_in_progress')) {
-			$return['state'] = 'in_progress';
+	public static function cron5() {
+		self::GetStatusCam();
+		self::GetStatusDetecMouv();
+		self::GetStatusHomeMode();
+		self::GetUrlLive();
+	}
+
+	public static function event() {
+		$cmd = surveillanceStationCmd::byId(init('id'));
+		if (!is_object($cmd)) {
+			throw new Exception('Commande ID surveillance station inconnu : ' . init('id'));
+		}
+		if ($cmd->getType() == 'action') {
+			$cmd->execCmd(array());
 		} else {
-			if (exec('which ruby | wc -l') != 0 && exec('gem list --local | grep concurrent-ruby | wc -l') != 0 && exec('gem list --local | grep thread | wc -l') != 0 && exec('gem list --local | grep httparty | wc -l') != 0) {
-				$return['state'] = 'ok';
-			} else {
-				$return['state'] = 'nok';
+			$cmd->event(init('value'));
+		}
+	}
+
+
+	/**
+     * Verification des configurations du plugins
+     */
+    public static function checkConfig() {
+		log::add('surveillanceStation', 'debug', ' ┌──── Verification des configurations du plugin');
+		// Checking snapLocation
+		if (config::byKey('snapLocation', 'surveillanceStation') == 'synology') {
+			config::save('snapRetention', '', 'surveillanceStation');
+			log::add('surveillanceStation', 'debug', ' │  checkConfig::snapRetention Nettoyage des valeurs');
+		}
+		// Checking Integer fields
+		foreach (array('port', 'snapRetention') as $field) {
+			if ( ! empty(config::byKey($field, 'surveillanceStation'))) {
+				switch($field) {
+					case 'port':
+						$min_range = 1;
+						$max_range = 65535;
+					default:
+						$min_range = 0;
+						$max_range = 9999;
+				}
+				if(!filter_var(config::byKey($field, 'surveillanceStation'), FILTER_VALIDATE_INT, array('options' => array('min_range' => $min_range, 'max_range' => $max_range)))){
+					log::add('surveillanceStation', 'debug', ' │  ERROR : checkConfig::'.$field.' est invalide. La configuration doit être un nombre (entier) compris entre '.$min_range.' et '.$max_range);
+					log::add('surveillanceStation', 'debug', ' └────────────');
+					throw new Exception(__($field.' est invalide. La configuration doit être un nombre (entier) compris entre '.$min_range.' et '.$max_range, __FILE__));
+				} else {
+					log::add('surveillanceStation', 'debug', ' │  checkConfig::'.$field.' OK with value ' . config::byKey($field, 'surveillanceStation'));
+				}
 			}
 		}
-		return $return;
+		log::add('surveillanceStation', 'debug', ' └────────────');
+    }
+
+
+	public static function callUrl($_parameters = null, $_recall = 0) {
+		$url = self::getUrl() . '/webapi/' . self::getApi($_parameters['api'], 'path') . '?version=' . self::getApi($_parameters['api'], 'version');
+		if ($_parameters !== null && is_array($_parameters)) {
+			foreach ($_parameters as $key => $value) {
+				$url .= '&' . $key . '=' . urlencode($value);
+			}
+		}
+		log::add('surveillanceStation', 'debug', 'callURL URL -> ' .print_r($url, true));
+		$url .= '&_sid=' . self::getSid();
+		$http = new com_http($url);
+		$result = json_decode($http->exec(15), true);
+		if ($result['success'] != true) {
+			if (($result['error']['code'] == 105) && $_recall < 3) {
+				self::deleteSid();
+				self::updateAPI();
+				return self::callUrl($_parameters, $_recall + 1);
+				log::add('surveillanceStation', 'error', 'callURL retour code -> ' .print_r(self::convertCodeErreur($result['error']['code']), true));
+			}
+			if (($result['error']['code'] != 105)) {
+				log::add('surveillanceStation', 'error', 'callURL retour code -> ' .print_r(self::convertCodeErreur($result['error']['code']), true));
+			}
+			throw new Exception(__('Appel api : ', __FILE__) . print_r($_parameters, true) . __(',url : ', __FILE__) . $url . ' => ' . print_r($result, true) . __(',code erreur : ', __FILE__) . ' => ' . print_r($result['error']['code'], true));
+		}
+		return $result;
 	}
 
-	public static function dependancy_install() {
-		if (file_exists('/tmp/compilation_ruby_in_progress')) {
+	public static function callUrlNoVersion($_parameters = null, $_recall = 0) {
+		$url = self::getUrl() . '/webapi/' . $_parameters;
+		log::add('surveillanceStation', 'debug', 'callURL URL -> ' .print_r($url, true));
+		$http = new com_http($url);
+		$result = json_decode($http->exec(15), true);
+		if ($result['success'] != true) {
+			if (($result['error']['code'] == 105) && $_recall < 3) {
+				self::deleteSid();
+				self::updateAPI();
+				return self::callUrlNoVersion($_parameters, $_recall + 1);
+				log::add('surveillanceStation', 'error', 'callURL retour code -> ' .print_r(self::convertCodeErreur($result['error']['code']), true));
+			}
+			if (($result['error']['code'] != 105)) {
+				log::add('surveillanceStation', 'error', 'callURL retour code -> ' .print_r(self::convertCodeErreur($result['error']['code']), true));
+			}
+			throw new Exception(__('Appel api : ', __FILE__) . print_r($_parameters, true) . __(',url : ', __FILE__) . $url . ' => ' . print_r($result, true) . __(',code erreur : ', __FILE__) . ' => ' . print_r($result['error']['code'], true));
+		}
+		return $result;
+	}
+
+	public static function getSid() {
+		if (self::$_sid !== null) {
+			return self::$_sid;
+		}
+		if (config::byKey('SYNO.SID.Session', 'surveillancestation') != '') {
+			self::$_sid = config::byKey('SYNO.SID.Session', 'surveillancestation');
+			return self::$_sid;
+		}
+		//$url = self::getUrl() . '/webapi/' . self::getApi('SYNO.API.Auth', 'path') . '?api=SYNO.API.Auth&method=Login&version=' . self::getApi('SYNO.API.Auth', 'version') . '&account=' . urlencode(config::byKey('user', 'surveillanceStation')) . '&passwd=' . urlencode(config::byKey('password', 'surveillanceStation')) . '&session=SurveillanceStation&format=sid';
+		$url = self::getUrl() . '/webapi/' . self::getApi('SYNO.API.Auth', 'path') . '?api=SYNO.API.Auth&method=login&version=' . self::getApi('SYNO.API.Auth', 'version') . '&account=' . urlencode(config::byKey('user', 'surveillanceStation')) . '&passwd=' . urlencode(config::byKey('password', 'surveillanceStation')) . '&session=SurveillanceStation&format=sid' . '&otp_code=' . urlencode(config::byKey('oauth', 'surveillanceStation')) . '&&enable_device_token=yes';
+		$http = new com_http($url);
+		$data = json_decode($http->exec(15), true);
+		if ($data['success'] != true) {
+			throw new Exception(__('Mise à jour des API SYNO.API.Auth en erreur : ', __FILE__) . print_r($data, true));
+		}
+		config::save('SYNO.SID.Session', $data['data']['sid'], 'surveillancestation');
+		self::$_sid = $data['data']['sid'];
+		return $data['data']['sid'];
+	}
+
+	public static function deleteSid() {
+		self::$_sid = null;
+		if (config::byKey('SYNO.SID.Session', 'surveillancestation') == '') {
 			return;
 		}
-		log::remove('surveillanceStation_update');
-		$cmd = 'sudo /bin/bash ' . dirname(__FILE__) . '/../../desktop/ressources/install.sh';
-		$cmd .= ' >> ' . log::getPathToLog('surveillanceStation_update') . ' 2>&1 &';
-		exec($cmd);
+		$url = self::getUrl() . '/webapi/' . self::getApi('SYNO.API.Auth', 'path') . '?api=SYNO.API.Auth&method=logout&version=' . self::getApi('SYNO.API.Auth', 'version') . '&session=SurveillanceStation&_sid=' . self::getSid();
+		$http = new com_http($url);
+		$data = json_decode($http->exec(15), true);
+		if ($data['success'] != true) {
+			throw new Exception(__('Destruction de la session en erreur, code : ', __FILE__) . $url . __(' , code : ', __FILE__) . $data['error']['code']);
+		}
+		config::remove('SYNO.SID.Session', 'surveillancestation');
 	}
 
-	public static function pull($_options)
-    {
-        foreach (eqLogic::byType('surveillanceStation') as $surveillanceStation) {
-
-            if (is_object($surveillanceStation)) {
-                foreach ($surveillanceStation->getCmd('info') as $cmd) {
-                    $cmd->event($cmd->execute());
-                    $cmd->save();
-                }
-            }
-        }
-    }
-	
-    public static function getSidFromCache($host)
-    {
-        $sidCache = cache::byKey('surveillanceStationSID'.$host);
-        return $sidCache->getValue();
-    }
-
-    public static function cron15()
-    {
-        $sidByHost = array();
-
-        $ctx = stream_context_create(array('http'=>
-            array(
-                'timeout' => 5,
-            ),
-            'https'=>
-                array(
-                    'timeout' => 5,
-                )
-        ));
-
-        foreach (eqLogic::byType('surveillanceStation') as $surveillanceStation) {
-
-            if (is_object($surveillanceStation)) {
-
-                if(!array_key_exists($surveillanceStation->getConfiguration('host'),$sidByHost)){
-
-                    log::add('surveillanceStation', 'debug', 'CRON - test validité SID pour synology '.$surveillanceStation->getConfiguration('host'));
-
-                    $valid = false;
-
-                    $version = ($surveillanceStation->getConfiguration('v6') == 0) ? 'v7' : 'v6';
-                    $host = $surveillanceStation->getConfiguration('host');
-                    $port = $surveillanceStation->getConfiguration('port');
-
-                    $sidCache = cache::byKey('surveillanceStationSID'.$surveillanceStation->getConfiguration('host'));
-
-                    if($sidCache->getValue() != ''){
-
-                        $contents = file_get_contents($host.':'.$port.surveillanceStationCmd::getAPI($version,'STATUT').'1&_sid='.$sidCache->getValue(), false, $ctx);
-                        $json = json_decode($contents);
-                        if($json->success == 'true'){
-                            $valid = true;
-                            log::add('surveillanceStation', 'debug', 'CRON - sid toujours valide pour synology '.$surveillanceStation->getConfiguration('host'));
-                            $sidByHost[$surveillanceStation->getConfiguration('host')] = $sidCache->getValue();
-                        }else{
-                            $valid = false;
-                            log::add('surveillanceStation', 'debug', 'CRON - sid expiré pour synology '.$surveillanceStation->getConfiguration('host'));
-                        }
-                    }
-
-                    if($sidCache == '' || $sidCache == null || $valid == false){
-                        $sid = self::authSID($surveillanceStation->getConfiguration('host'),$surveillanceStation->getConfiguration('port'),$surveillanceStation->getConfiguration('login'),$surveillanceStation->getConfiguration('password'));
-                        cache::set('surveillanceStationSID'.$surveillanceStation->getConfiguration('host'), $sid, 0);
-                        log::add('surveillanceStation', 'debug', 'CRON - mise en cache SID ['.$sid.'] pour synology '.$surveillanceStation->getConfiguration('host'));
-                        $sidByHost[$surveillanceStation->getConfiguration('host')] = $sid;
-                    }
-
-                }else{
-                    log::add('surveillanceStation', 'debug', 'CRON - SID déjà en cache pour '.$surveillanceStation->getConfiguration('host'));
-                }
-                $surveillanceStation->refreshWidget();
-            }
-        }
-    }
-
-    public static function mailTester($eqId)
-    {
-        require_once dirname(__FILE__) . '/../../3rdparty/PHPMailer-master/PHPMailerAutoload.php';
-
-        try{
-
-            $conf = surveillanceStation::byId($eqId);
-
-            $mail = new PHPMailer();
-
-            $mail->isSMTP();
-            $mail->Host  = $conf->getConfiguration('emailServer');
-
-            if($conf->getConfiguration('emailLogin') != ''){
-                $mail->SMTPAuth     = ($conf->getConfiguration('emailSecurity') == '') ? false : true;
-                $mail->Username     = $conf->getConfiguration('emailLogin');
-                $mail->Password     = $conf->getConfiguration('emailPassword');
-                $mail->SMTPSecure   = $conf->getConfiguration('emailSecurity');
-            }
-
-            $mail->Port         = $conf->getConfiguration('emailPort');
-            $mail->From         = $conf->getConfiguration('emailMailExp');
-            $mail->FromName     = $conf->getConfiguration('emailNomExp');
-
-            $mail->addAddress($conf->getConfiguration('emailMailExp'));
-
-            $mail->isHTML(true);
-
-            $mail->Subject = '[Jeedom] plugin surveillanceStation station';
-
-            $mail->Body = "[Jeedom] plugin surveillanceStation, ceci est un mail de test.";
-
-            if (!$mail->send()) {
-                log::add('surveillanceStation', 'debug', 'Impossible d\'envoyer le mail.'.' '.$mail->ErrorInfo);
-                echo 'Le message n\'a pas été envoyé.';
-                echo 'Mailer Error: ' . $mail->ErrorInfo;
-            } else {
-                return 'Le mail a été envoyé';
-            }
-        }catch (Exception $e){
-            log::add('surveillanceStation', 'debug', 'Impossible d\'envoyer le mail.'.' '.$e);
-            throw $e;
-        }
-    }
-
-    public static function checkDropbox()
-    {
-        require_once dirname(__FILE__) . '/../../3rdparty/dropbox-sdk/lib/Dropbox/autoload.php';
-
-        try {
-            $dbxClient = new dbx\Client($_POST['token'], "Jeedom synology plugin");
-            $accountInfo = $dbxClient->getAccountInfo();
-        } catch (Exception $e) {
-            return "Token invalide";
-        }
-        return $accountInfo;
-    }
-
-    public static function getCameras($eqId)
-    {
-		if ($eqId == '') {
-			return '';
+	public static function getURL() {
+		if (config::byKey('https', 'surveillancestation')) {
+			return 'https://' . config::byKey('ip', 'surveillanceStation') . ':' . config::byKey('port', 'surveillanceStation');
 		}
-        $syno_config = eqLogic::byId($eqId);
-        $host = $syno_config->getConfiguration('host');
-        $port = $syno_config->getConfiguration('port');
-        $login = $syno_config->getConfiguration('login');
-        $password = $syno_config->getConfiguration('password');
+		return 'http://' . config::byKey('ip', 'surveillanceStation') . ':' . config::byKey('port', 'surveillanceStation');
+	}
 
-        if($host == '' || $port == '' || $login == '' || $password == ''){
-            return array();
-        }
-
-        //auth + retrieve session cookies
-        $session_syno = self::auth($host, $port, $login, $password);
-		try{
-
-			$version = ($syno_config->getConfiguration('v6') == 0) ? 'v7' : 'v6';
-			$contents = file_get_contents($host . ':' . $port . surveillanceStationCmd::getAPI($version,'LIST'), false, $session_syno);
-
-		}catch (Exception $e){
-			log::add('surveillanceStation', 'error', 'Erreur lors de la recupération des caméras '.$e);
-			throw new Exception(__('Erreur lors de la recupération des caméras', __FILE__));
+	public static function getApi($_api, $_key) {
+		if (self::$_api_info == null && (config::byKey('api_info', 'surveillanceStation') == '' || !is_array(config::byKey('api_info', 'surveillanceStation')))) {
+			self::updateAPI();
 		}
+		if (self::$_api_info == null) {
+			self::$_api_info = config::byKey('api_info', 'surveillanceStation');
+		}
+		if (isset(self::$_api_info[$_api][$_key])) {
+			return self::$_api_info[$_api][$_key];
+		}
+		return '';
+	}
 
-        $json = json_decode($contents);
-        $cameras = array();
+	public static function updateAPI() {
+		$list_API = array(
+			'SYNO.API.Auth',
+			'SYNO.SurveillanceStation.Info',
+			'SYNO.SurveillanceStation.Camera',
+			'SYNO.SurveillanceStation.Camera.Event',
+			'SYNO.SurveillanceStation.SnapShot',
+			'SYNO.SurveillanceStation.Recording',
+			'SYNO.SurveillanceStation.HomeMode'
+			//'SYNO.SurveillanceStation.PTZ', (retourne une mauvaise version de l'API : 5 au lieu de 4 qui bug), donc 3)
+			//'SYNO.SurveillanceStation.ExternalRecording', (retourne une mauvaise version de l'API : 3 au lieu de 2)
+		);
+		$url = self::getUrl() . '/webapi/query.cgi?api=SYNO.API.Info&method=Query&version=1&query=SYNO.API.Auth,SYNO.SurveillanceStation.';
+		$http = new com_http($url);
+		$data = json_decode($http->exec(15), true);
+		if ($data['success'] != true) {
+			throw new Exception(__('Mise à jour des API SYNO.API.Inf en erreur, url : ', __FILE__) . $url . __(' , code : ', __FILE__) . $data['error']['code']);
+		}
+		$api = array();
+		foreach ($list_API as $value) {
+			if (!isset($data['data'][$value])) {
+				continue;
+			}
+			$api[$value] = array(
+				'path' => $data['data'][$value]['path'],
+				'version' => $data['data'][$value]['maxVersion'],
+			);
+			// contourne le pb de version fournie par l'API.Info
+			$api['SYNO.SurveillanceStation.ExternalRecording'] = array(
+				'path' => 'entry.cgi',
+				'version' => '2',
+			);
+			$api['SYNO.SurveillanceStation.PTZ'] = array(
+				'path' => 'entry.cgi',
+				'version' => '3',
+			);
+		}
+		config::save('api_info', $api, 'surveillanceStation');
+		log::add('surveillanceStation', 'debug', 'résultat list API -> ' .print_r($api, true));
+	}
 
-        if($json == null){
-            throw new Exception(__('Erreur lors de la recupération des caméras.', __FILE__));
-        }
+	public static function discover() {
+		self::deleteSid();
+		self::updateAPI();
+		$data = self::callUrl(array('api' => 'SYNO.SurveillanceStation.Info', 'method' => 'GetInfo'));
+		if ($data['data']['version']['major'] >= '8'){
+			$data = self::callUrl(array('api' => 'SYNO.SurveillanceStation.Camera', 'method' => 'List'));
+			foreach ($data['data']['cameras'] as $camera) {
+				$eqLogic = self::byLogicalId('camera' . $camera['id'], 'surveillanceStation');
+				if (!is_object($eqLogic)) {
+					$eqLogic = new self();
+					$eqLogic->setLogicalId('camera' . $camera['id']);
+					$eqLogic->setName($camera['newName']);
+					$eqLogic->setEqType_name('surveillanceStation');
+					$eqLogic->setIsVisible(0);
+					$eqLogic->setIsEnable(1);
+				}
+				$eqLogic->setConfiguration('id', $camera['id']);
+				$eqLogic->setConfiguration('model', $camera['model']);
+				$eqLogic->setConfiguration('vendor', $camera['vendor']);
+				$eqLogic->setConfiguration('ip', $camera['ip']);
+				$data = self::callUrl(array('api' => 'SYNO.SurveillanceStation.Info', 'method' => 'GetInfo'));
+				$eqLogic->setConfiguration('versionSS', $data['data']['CMSMinVersion']);
+				log::add('surveillanceStation', 'debug', 'Version SS '.$eqLogic->getConfiguration('versionSS'));
+				$url = self::getUrl() . '/webapi/entry.cgi?api=SYNO.SurveillanceStation.Camera&version=8&method=GetCapabilityByCamId&cameraId='.$camera['id'].'&_sid='.$eqLogic->getSid();
+				$http = new com_http($url);
+				$data = json_decode($http->exec(15), true);
+				log::add('surveillanceStation', 'debug', 'résultat PTZ Compatible direction '.$eqLogic->getName(). '(id:'.$eqLogic->getConfiguration('id').') -> ' .$data['data']['ptzDirection']);
+				log::add('surveillanceStation', 'debug', 'résultat PTZ Compatible Home '.$eqLogic->getName(). '(id:'.$eqLogic->getConfiguration('id').') -> ' .$data['data']['ptzHome']);
+				log::add('surveillanceStation', 'debug', 'résultat PTZ Compatible Speed '.$eqLogic->getName(). '(id:'.$eqLogic->getConfiguration('id').') -> ' .$data['data']['ptzSpeed']);
+				log::add('surveillanceStation', 'debug', 'résultat PTZ Compatible Pan '.$eqLogic->getName(). '(id:'.$eqLogic->getConfiguration('id').') -> ' .$data['data']['ptzPan']);
+				log::add('surveillanceStation', 'debug', 'résultat PTZ Compatible Tilt '.$eqLogic->getName(). '(id:'.$eqLogic->getConfiguration('id').') -> ' .$data['data']['ptzTilt']);
+				log::add('surveillanceStation', 'debug', 'résultat PTZ Compatible Zoom '.$eqLogic->getName(). '(id:'.$eqLogic->getConfiguration('id').') -> ' .$data['data']['ptzZoom']);
+				log::add('surveillanceStation', 'debug', 'résultat PTZ Compatible Abs '.$eqLogic->getName(). '(id:'.$eqLogic->getConfiguration('id').') -> ' .$data['data']['ptzAbs']);
+				log::add('surveillanceStation', 'debug', 'résultat PTZ Compatible AutoFocus '.$eqLogic->getName(). '(id:'.$eqLogic->getConfiguration('id').') -> ' .$data['data']['ptzAutoFocus']);
+				if ($data['data']['ptzDirection'] > '0'){$eqLogic->setConfiguration('ptzdirection', 'Oui');} else {$eqLogic->setConfiguration('ptzdirection', 'Non');}
+				if ($data['data']['ptzHome'] > '0'){$eqLogic->setConfiguration('ptzHome', 'Oui');} else {$eqLogic->setConfiguration('ptzHome', 'Non');}
+				if ($data['data']['ptzSpeed'] > '0'){$eqLogic->setConfiguration('ptzSpeed', 'Oui');} else {$eqLogic->setConfiguration('ptzSpeed', 'Non');}
+				if ($data['data']['ptzPan'] > '0'){$eqLogic->setConfiguration('ptzPan', 'Oui');} else {$eqLogic->setConfiguration('ptzPan', 'Non');}
+				if ($data['data']['ptzTilt'] > '0'){$eqLogic->setConfiguration('ptzTilt', 'Oui');} else {$eqLogic->setConfiguration('ptzTilt', 'Non');}
+				if ($data['data']['ptzZoom'] > '0'){$eqLogic->setConfiguration('ptzZoom', 'Oui');} else {$eqLogic->setConfiguration('ptzZoom', 'Non');}
+				if ($data['data']['ptzAbs'] > '0'){$eqLogic->setConfiguration('ptzAbs', 'Oui');} else {$eqLogic->setConfiguration('ptzAbs', 'Non');}
+				if ($data['data']['ptzAutoFocus'] > '0'){$eqLogic->setConfiguration('ptzAutoFocus', 'Oui');} else {$eqLogic->setConfiguration('ptzAutoFocus', 'Non');}
+				$eqLogic->save();
+			}
+			self::GetListPreset();
+			self::GetListPatrol();
+			self::GetStatusCam();
+			self::GetStatusDetecMouv();
+			self::GetUrlLive();
+		} else {
+			log::add('surveillanceStation', 'error', 'Votre version de Surveillance Station n\'est pas compatible avec ce plugin. Compatible à partir de la version : 8.0. Ancien plugin, sans maintenance et assistance, disponible ici : https://github.com/surveillancestation/surveillancestation. Merci d\'ouvrir un sujet dédié sur le forum');
+		}
+	}
 
-        foreach ($json->data->cameras as $camera) {
-            array_push($cameras, ['id' => $camera->id,
-                'name' => $camera->name,
-                'host' => $camera->host,
-                'model' => ($version == 'v7') ? $camera->model :  $camera->additional->device->model,
-                'port' => ($version == 'v7') ? $camera->port : $camera->additional->device->httpPort,
-                'resolution' => ($version == 'v7') ? $camera->resolution : $camera->additional->video->liveResolution,
-                'enable' => $camera->enabled,
-                'ptzCap' => $camera->ptzCap,
-                'recStatus' => $camera->recStatus
-            ]);
-        }
+	public static function GetStatusCam() {
+		$data = self::callUrl(array('api' => 'SYNO.SurveillanceStation.Camera', 'method' => 'List'));
+		log::add('surveillanceStation', 'debug', 'résultat API Statut Caméra -> ' .print_r($data['data'], true));
+		foreach ($data['data']['cameras'] as $camera) {
+			$eqLogic = self::byLogicalId('camera' . $camera['id'], 'surveillanceStation');
+			if (!is_object($eqLogic)) {
+				continue;
+			}
+			$eqLogic->checkAndUpdateCmd('state', self::convertStatusCam($camera['status']));
+			if ($camera['status'] == '3'){
+				log::add('surveillanceStation', 'error', 'La caméra est avec l\'ID '.$camera['id'].' est déconnectée');
+			}
+		}
+	}
 
-        return $cameras;
+	public static function GetStatusDetecMouv() {
+		foreach (eqLogic::byType('surveillanceStation', true) as $eqLogic) {
+			if ($eqLogic->getConfiguration('versionSS') >= '7.0'){
+				$data = self::callUrl(array('api' => 'SYNO.SurveillanceStation.Camera.Event', 'method' => 'MotionEnum', 'camId' => $eqLogic->getConfiguration('id')));
+				log::add('surveillanceStation', 'debug', 'résultat API Statut Detection Mouvement '.$eqLogic->getName(). '(id:'.$eqLogic->getConfiguration('id').') -> ' .print_r($data['data'], true));
+				$eqLogic->checkAndUpdateCmd('motion_status', self::convertStatusDetecMouv($data['data']['MDParam']['source']));
+			}
+		}
+	}
 
-    }
+	public static function GetStatusHomeMode() {
+		foreach (eqLogic::byType('surveillanceStation', true) as $eqLogic) {
+			if ($eqLogic->getConfiguration('versionSS') >= '8.1'){
+				$data = self::callUrl(array('api' => 'SYNO.SurveillanceStation.HomeMode', 'method' => 'GetInfo'));
+				log::add('surveillanceStation', 'debug', 'résultat API Home Mode : '.print_r(self::convertStatusHomeMode($data['data']['on']), true));
+				$eqLogic->checkAndUpdateCmd('homemode_status', self::convertStatusHomeMode($data['data']['on']));
+				$eqLogic->refreshWidget();
+			}
+		}
+	}
 
-    public static function auth($host, $port, $login, $password)
-    {
+	public static function GetListPreset() {
+		foreach (eqLogic::byType('surveillanceStation', true) as $eqLogic) {
+			if($eqLogic->getConfiguration('ptzdirection') == 'Oui'){
+				$url = $eqLogic->getUrl() . '/webapi/entry.cgi?api=SYNO.SurveillanceStation.PTZ&version=1&method=ListPreset&cameraId='.$eqLogic->getConfiguration('id').'&_sid='.$eqLogic->getSid();
+				$data = file_get_contents($url);
+				$presets = json_decode($data, true);
+				$listselectpreset = '';
+				foreach ($presets['data']['presets'] as $preset) {
+					$listselectpreset .= $preset['id']."|".$preset['name'].";";
+				}
+				$cmd = $eqLogic->getCmd('action', 'ptz_preset_start');
+				if (!is_object($cmd)) {
+					$cmd = new surveillanceStationCmd();
+					$cmd->setName(__('PTZ Position prédéfinie', __FILE__));
+					$cmd->setOrder(18);
+				}
+				$cmd->setEqLogic_id($eqLogic->getId());
+				$cmd->setLogicalId('ptz_preset_start');
+				$cmd->setType('action');
+				$cmd->setSubtype('select');
+				$cmd->setConfiguration('listValue',$listselectpreset);
+				$cmd->setIsVisible(0);
+				$cmd->save();
+				log::add('surveillanceStation', 'debug', 'résultat discovery Preset cam '.$eqLogic->getConfiguration('id').' -> ' .print_r($listselectpreset, true));
+			}
+		}
+	}
 
-        $ch = curl_init($host . ':' . $port . '/webapi/auth.cgi?api=SYNO.API.Auth&method=Login&version=1&account=' . $login . '&passwd=' . urlencode($password) . '&session=SurveillanceStation');
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_ENCODING, "");
-		curl_setopt($ch, CURLOPT_HEADER, true);
-		curl_setopt($ch, CURLOPT_AUTOREFERER, true);
-		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-		curl_setopt($ch, CURLOPT_SSLVERSION, 0);
-		curl_setopt($ch, CURLOPT_TIMEOUT, 7200);
-		curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 7200);
-		curl_setopt($ch, CURLOPT_MAXREDIRS, 10);
-        curl_setopt($ch, CURLOPT_VERBOSE, 0);
-        $result = curl_exec($ch);
+	public static function GetListPatrol() {
+		foreach (eqLogic::byType('surveillanceStation', true) as $eqLogic) {
+			if($eqLogic->getConfiguration('ptzdirection') == 'Oui'){
+				$url = $eqLogic->getUrl() . '/webapi/entry.cgi?api=SYNO.SurveillanceStation.PTZ&version=1&method=ListPatrol&cameraId='.$eqLogic->getConfiguration('id').'&_sid='.$eqLogic->getSid();
+				$data = file_get_contents($url);
+				$patrouilles = json_decode($data, true);
+				$listselectpatrol = '';
+				foreach ($patrouilles['data']['patrols'] as $patrouille) {
+					$listselectpatrol .= $patrouille['id']."|".$patrouille['name'].";";
+				}
+				$cmd = $eqLogic->getCmd('action', 'ptz_patrol_start');
+				if (!is_object($cmd)) {
+					$cmd = new surveillanceStationCmd();
+					$cmd->setName(__('PTZ Patrouille', __FILE__));
+					$cmd->setOrder(19);
+				}
+				$cmd->setEqLogic_id($eqLogic->getId());
+				$cmd->setLogicalId('ptz_patrol_start');
+				$cmd->setType('action');
+				$cmd->setSubtype('select');
+				$cmd->setConfiguration('listValue',$listselectpatrol);
+				$cmd->setIsVisible(0);
+				$cmd->save();
+				log::add('surveillanceStation', 'debug', 'résultat discovery Patrol caméra '.$eqLogic->getName(). '( id:'.$eqLogic->getConfiguration('id').') -> ' .print_r($listselectpatrol, true));
+			}
+		}
+	}
 
-        $header_size = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
-        $body = substr($result, $header_size);
 
-        if(strstr($body,'error') != null){
-            log::add('surveillanceStation', 'error', 'Erreur lors de l authentification. Vérifiez vos login et password. message : '.$body);
-            throw new Exception('Erreur lors de l authentification. Vérifiez vos login et password.');
-        }
 
-        preg_match('/^Set-Cookie:\s*([^;]*)/mi', $result, $m);
-        parse_str($m[1], $cookies);
+	public static function GetUrlLive() {
+		foreach (eqLogic::byType('surveillanceStation', true) as $eqLogic) {
+			if ($eqLogic->getConfiguration('versionSS') >= '6.3'){
+				$statutcam = $eqLogic->getCmd(null,'state')->execCmd();
+				if($eqLogic->getConfiguration('choixlive') == '1' && $statutcam == 'Activée'){
 
-            $opts = array(
-                'http' => array(
-                    'method' => "GET",
-                    'timeout' => 15,
-                    'header' => "Cookie: id=" . $cookies['id'] . ";\r\n"
-                ),
-                'https' => array(
-                    'method' => "GET",
-                    'timeout' => 15,
-                    'header' => "Cookie: id=" . $cookies['id'] . ";\r\n"
-                )
+					// Get RTSP LiveURL
+					$response = self::callUrl(array('api' => 'SYNO.SurveillanceStation.Camera', 'method' => 'GetLiveViewPath', 'idList' => $eqLogic->getConfiguration('id'))); // Method available since v8.0 (2017)
+					log::add('surveillanceStation', 'debug', 'API Response '.$eqLogic->getName(). '(id:'.$eqLogic->getConfiguration('id').') -> ' .var_export($response, TRUE));
+					$urlLive = $response['data']['0']['rtspPath'];
+					log::add('surveillanceStation', 'debug', 'résultat URL Live RTSP '.$urlLive);
+					$eqLogic->checkAndUpdateCmd('path_url_live_rtsp', $urlLive);
+					// End RTSP LiveURL
+
+					// URL Live for Dashboard - Updated by Marc GUYARD (@mguyard)
+					$urlLive = surveillanceStation::forgeURLExternal($response['data']['0']['mjpegHttpPath']);
+					log::add('surveillanceStation', 'debug', 'résultat URL Live '.$eqLogic->getName(). '(id:'.$eqLogic->getConfiguration('id').') -> ' .print_r($urlLive, true));
+					$eqLogic->checkAndUpdateCmd('path_url_live', $urlLive);
+					
+					$eqLogic->refreshWidget();
+				}
+				else if ($eqLogic->getConfiguration('choixlive') == '0'){
+					$eqLogic->checkAndUpdateCmd('path_url_live', '');
+					$eqLogic->checkAndUpdateCmd('path_url_live_rtsp', '');
+					log::add('surveillanceStation', 'debug', 'URL Live final : aucune, live désactivé dans la config');
+					$eqLogic->refreshWidget();
+				}
+				else if ($statutcam == 'Désactivée' || $statutcam == 'Déconnectée'){
+					$eqLogic->checkAndUpdateCmd('path_url_live', 'plugins/surveillanceStation/core/img/cameramini_off.png');
+					$eqLogic->checkAndUpdateCmd('path_url_live_rtsp', 'plugins/surveillanceStation/core/img/cameramini_off.png');
+					log::add('surveillanceStation', 'debug', 'URL Live final : aucune, caméra désactivée');
+					$eqLogic->refreshWidget();
+				}
+			}
+		}
+	}
+
+	/**
+	 * Function to convert Synology URL received by a URL matching configuration (in case of external access for example)
+	 * Author : Marc GUYARD (@mguyard)
+	 * @param string $url
+	 * @return string
+	 */
+	private static function forgeURLExternal($url) {
+		log::add(__CLASS__, 'debug', 'URL received : ' . $url);
+		$urlUpdated = $url;
+		$urlParsed = parse_url($url);
+		// Replace Scheme
+		$configScheme = config::byKey('https', 'surveillanceStation') == 1 ? 'https' : 'http';
+		if ($configScheme != $urlParsed['scheme']) {
+			$urlUpdated = str_replace($urlParsed['scheme'], $configScheme, $urlUpdated);
+		}
+		// Replace host
+		if (config::byKey('ip', 'surveillanceStation') != $urlParsed['host']) {
+			$urlUpdated = str_replace($urlParsed['host'], config::byKey('ip', 'surveillanceStation'), $urlUpdated);
+		}
+		// Replace Port
+		$configPort = empty(config::byKey('port', 'surveillanceStation')) ? '443' : config::byKey('port', 'surveillanceStation');
+		if (intval($configPort) != $urlParsed['port']) {
+			$urlUpdated = str_replace($urlParsed['port'], $configPort, $urlUpdated);
+		}
+		log::add(__CLASS__, 'debug', 'URL modified based on configuration : ' . $urlUpdated);
+		return htmlentities($urlUpdated, ENT_COMPAT);
+	}
+
+	public function getSnapshots($url, $filetype) {
+		// Define Timestamp NOW
+		$date = new \DateTime('now', new \DateTimeZone(config::byKey('timezone')));
+		// Create storage folders if don't exist
+		if (!is_dir(__SSPLGBASE__.'/data/captures/'.strval($this->getLogicalId()))) {
+			mkdir(__SSPLGBASE__.'/data/captures/'.strval($this->getLogicalId()), 0766, True);
+		}
+		// Purge Video up to the limit
+		self::purgeSnapshots();
+		// Define full storage path
+		$storePath = __SSPLGBASE__.'/data/captures/'.strval($this->getLogicalId()).'/'.$date->format('Y-m-d_His').'.'.$filetype;
+		// Store Snapshot or Video
+		$opts=array(
+			"ssl"=>array(
+				"verify_peer"=>false,
+				"verify_peer_name"=>false,
+			),
+		);
+		$content = file_get_contents($url, false, stream_context_create($opts));
+		$storage = fopen($storePath, "wb");
+		fwrite($storage, $content);
+		fclose($storage);
+		return $storePath;
+	}
+
+
+	private static function purgeSnapshots() {
+        $rii = new RecursiveIteratorIterator(new RecursiveDirectoryIterator(__SSPLGBASE__.'/data/captures/'));
+        $files = array();
+        foreach ($rii as $file) {
+            // Skip hidden files and directories.
+            if ($file->getFilename()[0] === '.') {
+                continue;
+            }
+            if ($file->isDir()){
+                continue;
+            }
+            $files[] = array(
+                'filefull' => $file->getPathname(),
+                'filename' => $file->getFilename(),
+                'ctime' => $file->getCTime(),
+                'mtime' => $file->getMTime(),
+                'size' => $file->getSize()
             );
-        return stream_context_create($opts);
-    }
-
-    public static function authSID($host, $port, $login, $password)
-    {
-        $ctx = stream_context_create(array('http'=>
-            array(
-                'timeout' => 15,
-            ),
-            'https'=>
-			array(
-				'timeout' => 15,
-			)
-        ));
-        $responseSID = file_get_contents($host . ':' . $port . '/webapi/auth.cgi?api=SYNO.API.Auth&method=Login&version=2&account='.$login.'&passwd='.urlencode($password).'&session=SurveillanceStation&format=sid',false,$ctx);
-        $jsonSID = json_decode($responseSID);
-        return $jsonSID->data->sid;
-    }
-
-    public static function checkAuth($host, $port, $login, $password)
-    {
-        $ctx = stream_context_create(array('http'=>
-            array(
-                'timeout' => 15,
-            ),
-            'https'=>
-			array(
-				'timeout' => 15,
-			)
-        ));
-
-        try{
-            $responseSID = file_get_contents($host . ':' . $port . '/webapi/auth.cgi?api=SYNO.API.Auth&method=Login&version=2&account='.$login.'&passwd='.urlencode($password).'&session=SurveillanceStation&format=sid',false,$ctx);
-        }catch (Exception $e){
-            log::add('surveillanceStation', 'error', 'Erreur lors de l\'authentification : '.$e);
-            throw new Exception('Erreur lors de l\'authentification, vérifier l\'adresse ip, le port, le protocole http / https.');
         }
-        $jsonSID = json_decode($responseSID);
-
-        if($jsonSID->success == true){
-            file_get_contents($host . ':' . $port . '/webapi/auth.cgi? api=SYNO.API.Auth&method=Logout&version=2&session=SurveillanceStation&_sid='.$jsonSID->data->sid,false,$ctx);
-            return 'true';
-        }else{
-            if($responseSID != null){
-                log::add('surveillanceStation', 'error', 'Erreur lors de l\'authentification code : '.$jsonSID->error->code);
-                return self::getAuthError($jsonSID->error->code);
-            }else{
-                log::add('surveillanceStation', 'error', 'Erreur lors de l\'authentification, vérifier l\'adresse ip, le port, le protocole http / https.');
-                return 'Vérifier l\'adresse ip, le port, le protocole http / https.';
+        // Trie les fichiers du plus ancien au plus récent
+        usort($files, function ($item1, $item2) {
+            return $item1['ctime'] <=> $item2['ctime'];
+        });
+        log::add('surveillanceStation', 'debug', 'purgeVideos::ListAllVideos - ' . var_export($files, true));
+        $countArray = count($files);
+        log::add('surveillanceStation', 'debug', 'purgeVideos::CountVideos - Il y a actuellement ' . $countArray . ' vidéos sur '. config::byKey('video_retention', 'surveillanceStation') .' stockables (retention configuré dans le plugin)');
+        // Si il y a plus de videos stocké que la retention autorisée
+        if ($countArray > intval(config::byKey('video_retention', 'surveillanceStation', '10'))) {
+            $nbToDelete = $countArray - intval(config::byKey('snapRetention', 'surveillanceStation', '10'));
+            for ($entry = 0; $entry <= $nbToDelete - 1; $entry++) {
+                unlink($files[$entry]['filefull']);
+                log::add('surveillanceStation', 'info', 'purgeVideos::Delete Suppression du fichier ' . $files[$entry]['filefull']);
             }
         }
     }
 
-    public static function getAuthError($code){
-
-        $ERROR = array
-        (
-                100          => 'Erreur inconnu',
-                101          => 'Les paramètres du compte ne sont pas spécifiés ',
-                400          => 'Mot de passe invalide',
-                401          => 'Compte invité ou compte désactivé',
-                402          => 'Permission refusée',
-                403          => 'One time password not specified.',
-                404          => 'One time password authenticate failed.'
-        );
-        return $ERROR[$code];
-    }
 
 
-    /*     * *********************Methode d'instance************************* */
+/*
+	public function SnapshotSend() {
+		$urlSnapshot = $this->getUrl() . '/webapi/entry.cgi?api=SYNO.SurveillanceStation.SnapShot&version=1&method=TakeSnapshot&dsId=0&camId='.$this->getConfiguration('id').'&_sid='.$this->getSid();
+		$data = file_get_contents($urlSnapshot);
+		$dataSnapShot = json_decode($data, true);
+		$idSnapShot = $dataSnapShot['data']['id'];
+		log::add('surveillanceStation', 'debug', 'résultat ID Snapshot '.$this->getName(). '(id:'.$this->getConfiguration('id').') -> ' .print_r($idSnapShot, true));
+		$urlRecupSnapshot = $this->getUrl() . '/webapi/entry.cgi?api=SYNO.SurveillanceStation.SnapShot&version=1&method=LoadSnapshot&id='.$idSnapShot.'&imgSize=2&_sid='.$this->getSid();
+		log::add('surveillanceStation', 'debug', 'résultat URL du Snapshot '.$this->getName(). '(id:'.$this->getConfiguration('id').') -> ' .print_r($urlRecupSnapshot, true));
+	}
+*/
+	public static function convertStatusHomeMode($_state) {
+		switch ($_state) {
+			case 0:
+				return __('Désactivé', __FILE__);
+			case '':
+				return __('Désactivé', __FILE__);
+			case 1:
+				return __('Activé', __FILE__);
+		}
+		return __('Inconnu', __FILE__);
+	}
 
-    public function preSave()
-    {
-    }
+	public static function convertStatusDetecMouv($_state) {
+		switch ($_state) {
+			case -1:
+				return __('Désactivée', __FILE__);
+			case 0:
+				return __('Activée (par caméra)', __FILE__);
+			case 1:
+				return __('Activée (par SS)', __FILE__);
+		}
+		return __('Inconnu', __FILE__);
+	}
 
-    public function preUpdate()
-    {
-        if($this->getConfiguration('live') == 1){
-            foreach ($this->getCmd() as $cmd) {
-                if($cmd->getConfiguration('synoAction') != 'live'){
-                    $cmd->remove();
-                }
-            }
-        }
+	public static function convertCodeErreur($_state) {
+		switch ($_state) {
+			case 100;
+				return __('Unknown error', __FILE__);
+			case 101;
+				return __('Invalid parameters or The account parameter is not specified', __FILE__);
+			case 102;
+				return __('API does not exist', __FILE__);
+			case 103;
+				return __('Method does not exist', __FILE__);
+			case 104;
+				return __('This API version is not supported', __FILE__);
+			case 105;
+				return __('Insufficient user privilege', __FILE__);
+			case 106;
+				return __('Connection time out', __FILE__);
+			case 107;
+				return __('Multiple login detected', __FILE__);
+			case 117;
+				return __('Vérifier vos droits, certaines fonctions demandent le privilège Directeur', __FILE__);
+			case 400;
+				return __('Invalid password or Execution failed', __FILE__);
+			case 401;
+				return __('Parameter invalid or Guest or disabled account', __FILE__);
+			case 402;
+				return __('Permission denied or Camera disabled or IO module disabled', __FILE__);
+			case 403;
+				return __('One time password not specified or Insufficient license', __FILE__);
+			case 404;
+				return __('One time password authenticate failed or Codec acitvation failed', __FILE__);
+			case 405;
+				return __('App portal incorrect or CMS server connection failed', __FILE__);
+			case 406;
+				return __('OTP code enforced', __FILE__);
+			case 407;
+				return __('Max Tries (if auto blocking is set to true) or CMS closed', __FILE__);
+			case 408;
+				return __('Password Expired Can not Change', __FILE__);
+			case 409;
+				return __('Password Expired', __FILE__);
+			case 410;
+				return __('Service is not enabled or Password must change (when first time use or after reset password by admin)', __FILE__);
+			case 411;
+				return __('Account Locked (when account max try exceed)', __FILE__);
+			case 412;
+				return __('Need to add license', __FILE__);
+			case 413;
+				return __('Reach the maximum of platform', __FILE__);
+			case 414;
+				return __('Some events not exist', __FILE__);
+			case 415;
+				return __('message connect failed', __FILE__);
+			case 417;
+				return __('Test Connection Error', __FILE__);
+			case 418;
+				return __('Object is not exist or The VisualStation ID does not exist', __FILE__);
+			case 419;
+				return __('Visualstation name repetition', __FILE__);
+			case 439;
+				return __('Too many items selected', __FILE__);
+		}
+		return __('Inconnu', __FILE__);
+	}
 
-    }
-    /*     * **********************Getteur Setteur*************************** */
-
-    public function getUserIP()
-    {
-        $client  = @$_SERVER['HTTP_CLIENT_IP'];
-        $forward = @$_SERVER['HTTP_X_FORWARDED_FOR'];
-        $remote  = $_SERVER['REMOTE_ADDR'];
-
-        if(filter_var($client, FILTER_VALIDATE_IP))
-        {
-            $ip = $client;
-        }
-        elseif(filter_var($forward, FILTER_VALIDATE_IP))
-        {
-            $ip = $forward;
-        }
-        else
-        {
-            $ip = $remote;
-        }
-
-        return $ip;
-    }
+	public static function convertStatusCam($_state) {
+		switch ($_state) {
+			case 1:
+				return __('Activée', __FILE__);
+			case 2:
+				return __('Supprimée', __FILE__);
+			case 3:
+				return __('Déconnectée', __FILE__);
+			case 4:
+				return __('Indisponible', __FILE__);
+			case 5:
+				return __('Prête', __FILE__);
+			case 6:
+				return __('Inaccessible', __FILE__);
+			case 7:
+				return __('Désactivée', __FILE__);
+			case 8:
+				return __('Non reconnue', __FILE__);
+			case 9:
+				return __('Parametrage', __FILE__);
+			case 10:
+				return __('Serveur déconnecté', __FILE__);
+			case 11:
+				return __('Migration', __FILE__);
+			case 12:
+				return __('Autre', __FILE__);
+			case 13:
+				return __('Stockage retiré', __FILE__);
+			case 14:
+				return __('Arrêt', __FILE__);
+			case 15:
+				return __('Historique de connexion échoué', __FILE__);
+			case 16:
+				return __('Non autorisé', __FILE__);
+			case 17:
+				return __('Erreur RTSP', __FILE__);
+			case 18:
+				return __('Aucune video', __FILE__);
+		}
+		return __('Inconnu', __FILE__);
+	}
 
 	public static $_widgetPossibility = array('custom' => true);
 
- 	public function toHtml($_version = 'dashboard')	{
-		if($this->getConfiguration('live') == '1'){	
-			$replace = $this->preToHtml($_version);
-			if (!is_array($replace)) {
-				return $replace;
-			}
-			$_version = jeedom::versionAlias($_version);
+	public function toHtml($_version = 'dashboard') {
+		$version = jeedom::versionAlias($_version);
+		$replace = $this->preToHtml($_version, array(), true);
 
-			$live = false;
-			$cmdLive = null;
-			foreach ($this->getCmd('action') as $cmd) {
-				if($cmd->getConfiguration('synoAction') == 'live') {
-				$live = true;
-				$cmdLive = $cmd;
-					log::add('surveillanceStation', 'debug', 'Live demandé pour '.$cmd->getName());
-				}
-			}
-			if(!$live){
-				return parent::toHtml($_version);
-			}
+		$statecam = $this->getCmd(null,'state');
+		$replace['#statecam#'] = (is_object($statecam)) ? $statecam->execCmd() : '';
+		$replace['#statecamid#'] = is_object($statecam) ? $statecam->getId() : '';
 
-			$cmdConf = $cmdLive->getConfiguration('cameras');
+		$activecam = $this->getCmd('action', 'enable');
+		$replace['#activecamid#'] = is_object($activecam) ? $activecam->getId() : '';
+		$replace['#activecam_display#'] = (is_object($activecam) && $activecam->getIsVisible()) ? "#activecam_display#" : "none";
 
-			foreach (array_keys($cmdConf) as $key) {
-				if ($cmdConf[$key] == '1') {
-					$cameraId = explode("%", $key)[1];
-				}
-			}
+		$desactivecam = $this->getCmd('action', 'disable');
+		$replace['#desactivecamid#'] = is_object($desactivecam) ? $desactivecam->getId() : '';
+		$replace['#desactivecam_display#'] = (is_object($desactivecam) && $desactivecam->getIsVisible()) ? "#desactivecam_display#" : "none";
 
-			$sidCache = cache::byKey('surveillanceStationSID'.$this->getConfiguration('host'));
-			if($sidCache->getValue() == ''){
-				$sid = self::authSID($this->getConfiguration('host'),$this->getConfiguration('port'),$this->getConfiguration('login'),$this->getConfiguration('password'));
-				cache::set('surveillanceStationSID'.$this->getConfiguration('host'), $sid, 0);
-				log::add('surveillanceStation', 'debug', 'mise en cache SID pour synology '.$this->getConfiguration('host'));
-			}else{
-				$sid = $sidCache->getValue();
-				log::add('surveillanceStation', 'debug', 'Sid depuis cache '.$this->getConfiguration('host'));
-			}
+		$recordstart = $this->getCmd('action', 'record_start');
+		$replace['#recordstartid#'] = is_object($recordstart) ? $recordstart->getId() : '';
+		$replace['#recordstart_display#'] = (is_object($recordstart) && $recordstart->getIsVisible()) ? "#recordstart_display#" : "none";
 
-			log::add('surveillanceStation', 'debug', 'ip client '.$this->getUserIP());
+		$recordstop = $this->getCmd('action', 'record_stop');
+		$replace['#recordstopid#'] = is_object($recordstop) ? $recordstop->getId() : '';
+		$replace['#recordstop_display#'] = (is_object($recordstop) && $recordstop->getIsVisible()) ? "#recordstop_display#" : "none";
 
-			$replace ['#host#'] = netMatch('192.168.*.*', getClientIp()) || netMatch('10.*.*.*', getClientIp()) ? $this->getConfiguration('host') : $this->getConfiguration('hostExt');
-			$replace ['#port#'] = netMatch('192.168.*.*', getClientIp()) || netMatch('10.*.*.*', getClientIp()) ? $this->getConfiguration('port') : $this->getConfiguration('portExt');
-			$replace ['#sid#'] = $sid;
-			$replace ['#humanname#'] = $this->getHumanName();
-			$replace ['#cameraId#'] = $cameraId;
-			$replace ['#formatvideo#'] = 'mjpeg'; //mjpeg ou hls
-			$replace ['#heightcam#'] = $this->getDisplay('height', 'auto') - 20;
+		$motionstartss = $this->getCmd('action', 'motion_start_ss');
+		$replace['#motionstartssid#'] = is_object($motionstartss) ? $motionstartss->getId() : '';
 
-			$html = template_replace($replace, getTemplate('core', $_version, 'surveillanceStation','surveillanceStation'));
-			return $html;
+		$motionstartcam = $this->getCmd('action', 'motion_start_cam');
+		$replace['#motionstartcamid#'] = is_object($motionstartcam) ? $motionstartcam->getId() : '';
+
+		$motionstop = $this->getCmd('action', 'motion_stop');
+		$replace['#motionstopid#'] = is_object($motionstop) ? $motionstop->getId() : '';
+
+		$snapshot = $this->getCmd('action', 'snapshot');
+		$replace['#snapshotid#'] = is_object($snapshot) ? $snapshot->getId() : '';
+		$replace['#snapshot_display#'] = (is_object($snapshot) && $snapshot->getIsVisible()) ? "#snapshot_display#" : "none";
+
+		$ptzright = $this->getCmd('action', 'ptz_right');
+		$replace['#ptzrightid#'] = is_object($ptzright) ? $ptzright->getId() : '';
+		$replace['#ptzright_display#'] = (is_object($ptzright) && $ptzright->getIsVisible()) ? "#ptzright_display#" : "none";
+
+		$ptzdown = $this->getCmd('action', 'ptz_down');
+		$replace['#ptzdownid#'] = is_object($ptzdown) ? $ptzdown->getId() : '';
+		$replace['#ptzdown_display#'] = (is_object($ptzdown) && $ptzdown->getIsVisible()) ? "#ptzdown_display#" : "none";
+
+		$ptzup = $this->getCmd('action', 'ptz_up');
+		$replace['#ptzupid#'] = is_object($ptzup) ? $ptzup->getId() : '';
+		$replace['#ptzup_display#'] = (is_object($ptzup) && $ptzup->getIsVisible()) ? "#ptzup_display#" : "none";
+
+		$ptzleft = $this->getCmd('action', 'ptz_left');
+		$replace['#ptzleftid#'] = is_object($ptzleft) ? $ptzleft->getId() : '';
+		$replace['#ptzleft_display#'] = (is_object($ptzleft) && $ptzleft->getIsVisible()) ? "#ptzleft_display#" : "none";
+
+		$ptzhome = $this->getCmd('action', 'ptz_home');
+		$replace['#ptzhomeid#'] = is_object($ptzhome) ? $ptzhome->getId() : '';
+		$replace['#ptzhome_display#'] = (is_object($ptzhome) && $ptzhome->getIsVisible()) ? "#ptzhome_display#" : "none";
+
+		$ptzstop = $this->getCmd('action', 'ptz_stop');
+		$replace['#ptzstopid#'] = is_object($ptzstop) ? $ptzstop->getId() : '';
+		$replace['#ptzstop_display#'] = (is_object($ptzstop) && $ptzstop->getIsVisible()) ? "#ptzstop_display#" : "none";
+
+		$motionstatus = $this->getCmd(null, 'motion_status');
+		$replace['#motionstatus#'] = (is_object($motionstatus)) ? $motionstatus->execCmd() : '';
+		$replace['#motionstatusid#'] = is_object($motionstatus) ? $motionstatus->getId() : '';
+		$replace['#motion_display#'] = is_object($motionstatus) ? "#motion_display#" : "none";
+
+		$homemodestatus = $this->getCmd(null, 'homemode_status');
+		$replace['#homemodestatus#'] = (is_object($homemodestatus)) ? $homemodestatus->execCmd() : '';
+		$replace['#homemodestatusid#'] = is_object($homemodestatus) ? $homemodestatus->getId() : '';
+		$replace['#homemode_display#'] = is_object($homemodestatus) ? "#homemode_display#" : "none";
+
+		$urllive = $this->getCmd(null, 'path_url_live');
+		$replace['#urllive#'] = (is_object($urllive)) ? $urllive->execCmd() : '';
+		$replace['#urlliveid#'] = is_object($urllive) ? $urllive->getId() : '';
+		$replace['#urllive_display#'] = (is_object($urllive) && $urllive->getIsVisible()) ? "#urllive_display#" : "none";
+
+		$replace['#ptz_display#'] = ($this->getConfiguration('ptzdirection') == 'Oui') ? "#ptz_display#" : "none";
+		$replace['#actions_display#'] = ($this->getConfiguration('choixactions') == '1') ? "#actions_display#" : "none";
+		$replace['#statuts_display#'] = ($this->getConfiguration('choixstatuts') == '1') ? "#statuts_display#" : "none";
+
+		$parameters = $this->getDisplay('parameters');
+		if (is_array($parameters)) {
+		    foreach ($parameters as $key => $value) {
+		        $replace['#' . $key . '#'] = $value;
+		    }
 		}
-		if($this->getConfiguration('live') != '1'){
-			return parent::toHtml($_version);
+
+		$commandes = template_replace($replace, getTemplate('core', jeedom::versionAlias($version), 'surveillanceStation_action', 'surveillanceStation'));
+		$replace['#action#'] = $commandes;
+		return $this->postToHtml($version, template_replace($replace, getTemplate('core', jeedom::versionAlias($version), 'surveillanceStation', 'surveillanceStation')));
+	}
+
+	/*     * *********************Méthodes d'instance************************* */
+
+	public function preUpdate() {
+		$this->setCategory('security', 1);
+	}
+
+	public function postSave() {
+		$cmd = $this->getCmd(null, 'state');
+		if (!is_object($cmd)) {
+			$cmd = new surveillanceStationCmd();
+			$cmd->setLogicalId('state');
+			$cmd->setName(__('Status caméra', __FILE__));
+			$cmd->setOrder(1);
+		}
+		$cmd->setType('info');
+		$cmd->setSubType('string');
+		$cmd->setEqLogic_id($this->getId());
+		$cmd->setIsVisible(1);
+		$cmd->save();
+		$state_id = $cmd->getId();
+
+		$cmd = $this->getCmd('action', 'enable');
+		if (!is_object($cmd)) {
+			$cmd = new surveillanceStationCmd();
+			$cmd->setName(__('Activer', __FILE__));
+			$cmd->setOrder(2);
+
+		}
+		$cmd->setEqLogic_id($this->getId());
+		$cmd->setLogicalId('enable');
+		$cmd->setType('action');
+		$cmd->setSubtype('other');
+		$cmd->setIsVisible(1);
+		$cmd->save();
+
+		$cmd = $this->getCmd('action', 'disable');
+		if (!is_object($cmd)) {
+			$cmd = new surveillanceStationCmd();
+			$cmd->setName(__('Désactiver', __FILE__));
+			$cmd->setOrder(3);
+		}
+		$cmd->setEqLogic_id($this->getId());
+		$cmd->setLogicalId('disable');
+		$cmd->setType('action');
+		$cmd->setSubtype('other');
+		$cmd->setIsVisible(1);
+		$cmd->save();
+
+		$cmd = $this->getCmd('action', 'record_start');
+		if (!is_object($cmd)) {
+			$cmd = new surveillanceStationCmd();
+			$cmd->setName(__('Start record', __FILE__));
+			$cmd->setOrder(4);
+		}
+		$cmd->setEqLogic_id($this->getId());
+		$cmd->setLogicalId('record_start');
+		$cmd->setType('action');
+		$cmd->setSubtype('other');
+		$cmd->setIsVisible(1);
+		$cmd->save();
+
+		$cmd = $this->getCmd('action', 'record_stop');
+		if (!is_object($cmd)) {
+			$cmd = new surveillanceStationCmd();
+			$cmd->setName(__('Stop record', __FILE__));
+			$cmd->setOrder(5);
+		}
+		$cmd->setEqLogic_id($this->getId());
+		$cmd->setLogicalId('record_stop');
+		$cmd->setType('action');
+		$cmd->setSubtype('other');
+		$cmd->setIsVisible(1);
+		$cmd->save();
+
+		if ($this->getConfiguration('versionSS') >= '7.0'){
+			$cmd = $this->getCmd('action', 'motion_start_ss');
+			if (!is_object($cmd)) {
+				$cmd = new surveillanceStationCmd();
+				$cmd->setName(__('Détection mouvement start par SS', __FILE__));
+				$cmd->setOrder(6);
+			}
+			$cmd->setEqLogic_id($this->getId());
+			$cmd->setLogicalId('motion_start_ss');
+			$cmd->setType('action');
+			$cmd->setSubtype('other');
+			$cmd->setIsVisible(0);
+			$cmd->save();
+
+			$cmd = $this->getCmd('action', 'motion_start_cam');
+			if (!is_object($cmd)) {
+				$cmd = new surveillanceStationCmd();
+				$cmd->setName(__('Détection mouvement start par Caméra', __FILE__));
+				$cmd->setOrder(7);
+			}
+			$cmd->setEqLogic_id($this->getId());
+			$cmd->setLogicalId('motion_start_cam');
+			$cmd->setType('action');
+			$cmd->setSubtype('other');
+			$cmd->setIsVisible(0);
+			$cmd->save();
+
+			$cmd = $this->getCmd('action', 'motion_stop');
+			if (!is_object($cmd)) {
+				$cmd = new surveillanceStationCmd();
+				$cmd->setName(__('Détection mouvement stop', __FILE__));
+				$cmd->setOrder(8);
+			}
+			$cmd->setEqLogic_id($this->getId());
+			$cmd->setLogicalId('motion_stop');
+			$cmd->setType('action');
+			$cmd->setSubtype('other');
+			$cmd->setIsVisible(0);
+			$cmd->save();
+
+			$cmd = $this->getCmd(null, 'motion_status');
+			if (!is_object($cmd)) {
+				$cmd = new surveillanceStationCmd();
+				$cmd->setLogicalId('motion_status');
+				$cmd->setName(__('Détection mouvement', __FILE__));
+				$cmd->setOrder(9);
+			}
+			$cmd->setType('info');
+			$cmd->setSubType('string');
+			$cmd->setEqLogic_id($this->getId());
+			$cmd->setIsVisible(0);
+			$cmd->save();
+			$motion_status_id = $cmd->getId();
+		}
+
+		if($this->getConfiguration('ptzdirection') == 'Oui'){
+			if($this->getConfiguration('ptzHome') == 'Oui'){
+				$cmd = $this->getCmd('action', 'ptz_home');
+				if (!is_object($cmd)) {
+					$cmd = new surveillanceStationCmd();
+					$cmd->setName(__('PTZ Home', __FILE__));
+					$cmd->setOrder(10);
+				}
+				$cmd->setEqLogic_id($this->getId());
+				$cmd->setLogicalId('ptz_home');
+				$cmd->setType('action');
+				$cmd->setSubtype('other');
+				$cmd->setIsVisible(1);
+				$cmd->save();
+			}
+
+			$cmd = $this->getCmd('action', 'ptz_left');
+			if (!is_object($cmd)) {
+				$cmd = new surveillanceStationCmd();
+				$cmd->setName(__('PTZ Gauche', __FILE__));
+				$cmd->setOrder(11);
+			}
+			$cmd->setEqLogic_id($this->getId());
+			$cmd->setLogicalId('ptz_left');
+			$cmd->setType('action');
+			$cmd->setSubtype('other');
+			$cmd->setIsVisible(1);
+			$cmd->save();
+
+			$cmd = $this->getCmd('action', 'ptz_up');
+			if (!is_object($cmd)) {
+				$cmd = new surveillanceStationCmd();
+				$cmd->setName(__('PTZ Haut', __FILE__));
+				$cmd->setOrder(12);
+			}
+			$cmd->setEqLogic_id($this->getId());
+			$cmd->setLogicalId('ptz_up');
+			$cmd->setType('action');
+			$cmd->setSubtype('other');
+			$cmd->setIsVisible(1);
+			$cmd->save();
+
+			$cmd = $this->getCmd('action', 'ptz_down');
+			if (!is_object($cmd)) {
+				$cmd = new surveillanceStationCmd();
+				$cmd->setName(__('PTZ Bas', __FILE__));
+				$cmd->setOrder(13);
+			}
+			$cmd->setEqLogic_id($this->getId());
+			$cmd->setLogicalId('ptz_down');
+			$cmd->setType('action');
+			$cmd->setSubtype('other');
+			$cmd->setIsVisible(1);
+			$cmd->save();
+
+			$cmd = $this->getCmd('action', 'ptz_right');
+			if (!is_object($cmd)) {
+				$cmd = new surveillanceStationCmd();
+				$cmd->setName(__('PTZ Droite', __FILE__));
+				$cmd->setOrder(14);
+			}
+			$cmd->setEqLogic_id($this->getId());
+			$cmd->setLogicalId('ptz_right');
+			$cmd->setType('action');
+			$cmd->setSubtype('other');
+			$cmd->setIsVisible(1);
+			$cmd->save();
+
+			$cmd = $this->getCmd('action', 'ptz_stop');
+			if (!is_object($cmd)) {
+				$cmd = new surveillanceStationCmd();
+				$cmd->setName(__('PTZ Stop', __FILE__));
+				$cmd->setOrder(15);
+			}
+			$cmd->setEqLogic_id($this->getId());
+			$cmd->setLogicalId('ptz_stop');
+			$cmd->setType('action');
+			$cmd->setSubtype('other');
+			$cmd->setIsVisible(1);
+			$cmd->save();
+			}
+
+			$cmd = $this->getCmd('action', 'snapshot');
+			if (!is_object($cmd)) {
+				$cmd = new surveillanceStationCmd();
+				$cmd->setName(__('Instantané', __FILE__));
+				$cmd->setOrder(16);
+			}
+			$cmd->setEqLogic_id($this->getId());
+			$cmd->setLogicalId('snapshot');
+			$cmd->setType('action');
+			$cmd->setSubtype('other');
+			$cmd->setIsVisible(1);
+			$cmd->save();
+
+			/* Code ajouté par Rémy JACOB le 25/12/2020 à partir des infos de https://community.jeedom.com/t/surveillance-station-telegram/31050/4 */
+			$cmd = $this->getCmd(null, 'snapshotsendURL');
+			if (!is_object($cmd)) {
+				$cmd = new surveillanceStationCmd();
+				$cmd->setEqLogic_id($this->getId());
+				$cmd->setLogicalId('snapshotsendURL');
+				$cmd->setOrder(21);
+			}
+			$cmd->setName(__('URL instantané', __FILE__));
+			$cmd->setType('info');
+			$cmd->setSubType('string');
+			$cmd->setEqLogic_id($this->getId());
+			$cmd->setIsVisible(0);
+			$cmd->save();
+			/* Fin du code ajouté */
+		
+		if ($this->getConfiguration('versionSS') >= '8.1'){
+			$cmd = $this->getCmd('action', 'homemode_start');
+			if (!is_object($cmd)) {
+				$cmd = new surveillanceStationCmd();
+				$cmd->setName(__('Active Home Mode', __FILE__));
+				$cmd->setOrder(17);
+			}
+			$cmd->setEqLogic_id($this->getId());
+			$cmd->setLogicalId('homemode_start');
+			$cmd->setType('action');
+			$cmd->setSubtype('other');
+			$cmd->setIsVisible(0);
+			$cmd->save();
+
+			$cmd = $this->getCmd('action', 'homemode_stop');
+			if (!is_object($cmd)) {
+				$cmd = new surveillanceStationCmd();
+				$cmd->setName(__('Désactive Home Mode', __FILE__));
+				$cmd->setOrder(18);
+			}
+			$cmd->setEqLogic_id($this->getId());
+			$cmd->setLogicalId('homemode_stop');
+			$cmd->setType('action');
+			$cmd->setSubtype('other');
+			$cmd->setIsVisible(0);
+			$cmd->save();
+
+			$cmd = $this->getCmd(null, 'homemode_status');
+			if (!is_object($cmd)) {
+				$cmd = new surveillanceStationCmd();
+				$cmd->setLogicalId('homemode_status');
+				$cmd->setName(__('Home Mode', __FILE__));
+				$cmd->setOrder(19);
+			}
+			$cmd->setType('info');
+			$cmd->setSubType('string');
+			$cmd->setEqLogic_id($this->getId());
+			$cmd->setIsVisible(0);
+			$cmd->save();
+			$motion_status_id = $cmd->getId();
+		}
+
+		if ($this->getConfiguration('versionSS') >= '6.3'){
+			$cmd = $this->getCmd(null, 'path_url_live');
+			if (!is_object($cmd)) {
+				$cmd = new surveillanceStationCmd();
+				$cmd->setLogicalId('path_url_live');
+				$cmd->setName(__('URL Live', __FILE__));
+				$cmd->setOrder(1);
+			}
+			$cmd->setType('info');
+			$cmd->setSubType('string');
+			$cmd->setEqLogic_id($this->getId());
+			$cmd->setIsVisible(0);
+			$cmd->save();
+			$path_url_live = $cmd->getId();
+		}
+
+		if ($this->getConfiguration('versionSS') >= '6.3'){
+			$cmd = $this->getCmd(null, 'path_url_live_rtsp');
+			if (!is_object($cmd)) {
+				$cmd = new surveillanceStationCmd();
+				$cmd->setLogicalId('path_url_live_rtsp');
+				$cmd->setName(__('URL Live RTSP', __FILE__));
+				$cmd->setOrder(1);
+			}
+			$cmd->setType('info');
+			$cmd->setSubType('string');
+			$cmd->setEqLogic_id($this->getId());
+			$cmd->setIsVisible(0);
+			$cmd->save();
+			$path_url_live_rtsp = $cmd->getId();
+		}
+
+		$refresh = $this->getCmd(null, 'refresh');
+		if (!is_object($refresh)) {
+			$refresh = new surveillanceStationCmd();
+		}
+		$refresh->setName(__('Rafraîchir', __FILE__));
+		$refresh->setEqLogic_id($this->getId());
+		$refresh->setLogicalId('refresh');
+		$refresh->setType('action');
+		$refresh->setSubType('other');
+		$refresh->setIsVisible(0);
+		$refresh->save();
+
+		self::GetStatusCam();
+		self::GetStatusDetecMouv();
+		self::GetUrlLive();
+	}
+
+	/*     * **********************Getteur Setteur*************************** */
+}
+
+class surveillanceStationCmd extends cmd {
+	/*     * *************************Attributs****************************** */
+	public static $_widgetPossibility = array('custom' => false);
+	/*     * ***********************Methode static*************************** */
+
+	/*     * *********************Methode d'instance************************* */
+
+	public function dontRemoveCmd() {
+		if ($this->getLogicalId() != '') {
+			return true;
+		}
+		return false;
+	}
+
+	public function execute($_options = array()) {
+		if ($this->getType() == 'info') {
+			return;
+		}
+		$eqLogic = $this->getEqLogic();
+		$statecam = $eqLogic->getCmd(null,'state')->execCmd();
+
+		if ($this->getLogicalId() == 'enable') {
+			log::add('surveillanceStation', 'debug', 'lancement de l\'action  enable caméra '.$eqLogic->getName(). '(id:'.$eqLogic->getConfiguration('id').')');
+			$eqLogic->callUrl(array('api' => 'SYNO.SurveillanceStation.Camera', 'method' => 'Enable', 'idList' => $eqLogic->getConfiguration('id')));
+			sleep(5);
+			$eqLogic->GetStatusCam();
+			$eqLogic->GetUrlLive();
+		}
+		if ($this->getLogicalId() == 'disable') {
+			log::add('surveillanceStation', 'debug', 'lancement de l\'action  disable caméra '.$eqLogic->getName(). '(id:'.$eqLogic->getConfiguration('id').')');
+			$eqLogic->callUrl(array('api' => 'SYNO.SurveillanceStation.Camera', 'method' => 'Disable', 'idList' => $eqLogic->getConfiguration('id')));
+			$eqLogic->GetStatusCam();
+			$eqLogic->GetUrlLive();
+		}
+		if ($this->getLogicalId() == 'record_start') {
+			if ($statecam == 'Activée'){
+				log::add('surveillanceStation', 'debug', 'lancement de l\'action  Record Start '.$eqLogic->getName(). '(id:'.$eqLogic->getConfiguration('id').')');
+				$eqLogic->callUrl(array('api' => 'SYNO.SurveillanceStation.ExternalRecording', 'method' => 'Record', 'action' => 'start', 'cameraId' => $eqLogic->getConfiguration('id')));
+			} else {
+				throw new Exception('Commande impossible, la caméra est désactivée');
+			}
+		}
+		if ($this->getLogicalId() == 'record_stop') {
+			if ($statecam == 'Activée'){
+				log::add('surveillanceStation', 'debug', 'lancement de l\'action  Record Stop '.$eqLogic->getName(). '(id:'.$eqLogic->getConfiguration('id').')');
+				$eqLogic->callUrl(array('api' => 'SYNO.SurveillanceStation.ExternalRecording', 'method' => 'Record', 'action' => 'stop', 'cameraId' => $eqLogic->getConfiguration('id')));
+			} else {
+				throw new Exception('Commande impossible, la caméra est désactivée');
+			}
+		}
+		if ($this->getLogicalId() == 'motion_start_ss') {
+			if ($statecam == 'Activée'){
+				log::add('surveillanceStation', 'debug', 'lancement de l\'action  Motion Start par SS '.$eqLogic->getName(). '(id:'.$eqLogic->getConfiguration('id').')');
+				$eqLogic->callUrl(array('api' => 'SYNO.SurveillanceStation.Camera.Event', 'source' => '1', 'method' => 'MDParamSave', 'keep' => 'true', 'camId' => $eqLogic->getConfiguration('id')));
+				sleep(5);
+				$eqLogic->GetStatusDetecMouv();
+				$eqLogic->refreshWidget();
+			} else {
+				throw new Exception('Commande impossible, la caméra est désactivée');
+			}
+		}
+		if ($this->getLogicalId() == 'motion_start_cam') {
+			if ($statecam == 'Activée'){
+				log::add('surveillanceStation', 'debug', 'lancement de l\'action  Motion Start par Caméra '.$eqLogic->getName(). '(id:'.$eqLogic->getConfiguration('id').')');
+				surveillanceStation::callUrl(array('api' => 'SYNO.SurveillanceStation.Camera.Event', 'source' => '0', 'method' => 'MDParamSave', 'keep' => 'true', 'camId' => $eqLogic->getConfiguration('id')));
+				sleep(5);
+				$eqLogic->GetStatusDetecMouv();
+				$eqLogic->refreshWidget();
+			} else {
+				throw new Exception('Commande impossible, la caméra est désactivée');
+			}
+		}
+		if ($this->getLogicalId() == 'motion_stop') {
+			if ($statecam == 'Activée'){
+				log::add('surveillanceStation', 'debug', 'lancement de l\'action  Motion Stop '.$eqLogic->getName(). '(id:'.$eqLogic->getConfiguration('id').')');
+				surveillanceStation::callUrl(array('api' => 'SYNO.SurveillanceStation.Camera.Event', 'source' => '-1', 'method' => 'MDParamSave', 'keep' => 'false', 'camId' => $eqLogic->getConfiguration('id')));
+				sleep(5);
+				$eqLogic->GetStatusDetecMouv();
+				$eqLogic->refreshWidget();
+			} else {
+				throw new Exception('Commande impossible, la caméra est désactivée');
+			}
+		}
+		if ($this->getLogicalId() == 'ptz_home') {
+			if ($statecam == 'Activée'){
+				log::add('surveillanceStation', 'debug', 'lancement de l\'action  PTZ Home caméra '.$eqLogic->getName(). '(id:'.$eqLogic->getConfiguration('id').') -> speed -> ' .$eqLogic->getConfiguration('speedptz'));
+				$eqLogic->callUrlNoVersion('entry.cgi?version=5&api=SYNO.SurveillanceStation.PTZ&method=Home&speed='.$eqLogic->getConfiguration('speedptz').'&cameraId='.$eqLogic->getConfiguration('id').'&_sid='.$eqLogic->getSid());
+			} else {
+				throw new Exception('Commande impossible, la caméra est désactivée');
+			}
+		}
+		if ($this->getLogicalId() == 'ptz_left') {
+			if ($statecam == 'Activée'){
+				log::add('surveillanceStation', 'debug', 'lancement de l\'action  PTZ Left caméra '.$eqLogic->getName(). '(id:'.$eqLogic->getConfiguration('id').') -> speed -> ' .$eqLogic->getConfiguration('speedptz'));
+				$eqLogic->callUrl(array('api' => 'SYNO.SurveillanceStation.PTZ', 'method' => 'Move', 'direction' => 'left', 'moveType' => 'Start', 'speed' => $eqLogic->getConfiguration('speedptz'), 'cameraId' => $eqLogic->getConfiguration('id')));
+			} else {
+				throw new Exception('Commande impossible, la caméra est désactivée');
+			}
+		}
+		if ($this->getLogicalId() == 'ptz_up') {
+			if ($statecam == 'Activée'){
+				log::add('surveillanceStation', 'debug', 'lancement de l\'action  PTZ Up caméra '.$eqLogic->getName(). '(id:'.$eqLogic->getConfiguration('id').') -> speed -> ' .$eqLogic->getConfiguration('speedptz'));
+				$eqLogic->callUrl(array('api' => 'SYNO.SurveillanceStation.PTZ', 'method' => 'Move', 'direction' => 'up', 'moveType' => 'Start', 'speed' => $eqLogic->getConfiguration('speedptz'), 'cameraId' => $eqLogic->getConfiguration('id')));
+			} else {
+				throw new Exception('Commande impossible, la caméra est désactivée');
+			}
+		}
+		if ($this->getLogicalId() == 'ptz_down') {
+			if ($statecam == 'Activée'){
+				log::add('surveillanceStation', 'debug', 'lancement de l\'action  PTZ Down caméra '.$eqLogic->getName(). '(id:'.$eqLogic->getConfiguration('id').') -> speed -> ' .$eqLogic->getConfiguration('speedptz'));
+				$eqLogic->callUrl(array('api' => 'SYNO.SurveillanceStation.PTZ', 'method' => 'Move', 'direction' => 'down', 'moveType' => 'Start', 'speed' => $eqLogic->getConfiguration('speedptz'), 'cameraId' => $eqLogic->getConfiguration('id')));
+			} else {
+				throw new Exception('Commande impossible, la caméra est désactivée');
+			}
+		}
+		if ($this->getLogicalId() == 'ptz_right') {
+			if ($statecam == 'Activée'){
+			log::add('surveillanceStation', 'debug', 'lancement de l\'action  PTZ Right caméra '.$eqLogic->getName(). '(id:'.$eqLogic->getConfiguration('id').') -> speed -> ' .$eqLogic->getConfiguration('speedptz'));
+			$eqLogic->callUrl(array('api' => 'SYNO.SurveillanceStation.PTZ', 'method' => 'Move', 'direction' => 'right', 'moveType' => 'Start', 'speed' => $eqLogic->getConfiguration('speedptz'), 'cameraId' => $eqLogic->getConfiguration('id')));
+		} else {
+			throw new Exception('Commande impossible, la caméra est désactivée');
+		}
+		}
+		if ($this->getLogicalId() == 'ptz_stop') {
+			if ($statecam == 'Activée'){
+				log::add('surveillanceStation', 'debug', 'lancement de l\'action  PTZ Stop caméra '.$eqLogic->getName(). '(id:'.$eqLogic->getConfiguration('id').') -> speed -> ' .$eqLogic->getConfiguration('speedptz'));
+				$eqLogic->callUrl(array('api' => 'SYNO.SurveillanceStation.PTZ', 'method' => 'Move', 'direction' => 'right', 'moveType' => 'Stop', 'speed' => $eqLogic->getConfiguration('speedptz'), 'cameraId' => $eqLogic->getConfiguration('id')));
+			} else {
+				throw new Exception('Commande impossible, la caméra est désactivée');
+			}
+		}
+		if ($this->getLogicalId() == 'ptz_patrol_start') {
+			if ($statecam == 'Activée'){
+				log::add('surveillanceStation', 'debug', 'lancement de l\'action  Patrouille caméra '.$eqLogic->getName(). '(id:'.$eqLogic->getConfiguration('id').') -> preset ID -> ' .$_options['select']);
+				$eqLogic->callUrl(array('api' => 'SYNO.SurveillanceStation.PTZ', 'method' => 'RunPatrol', 'patrolId' => $_options['select'], 'cameraId' => $eqLogic->getConfiguration('id')));
+			} else {
+				throw new Exception('Commande impossible, la caméra est désactivée');
+			}
+		}
+		if ($this->getLogicalId() == 'ptz_preset_start') {
+			if ($statecam == 'Activée'){
+				log::add('surveillanceStation', 'debug', 'lancement de l\'action  Position prédéfinie caméra '.$eqLogic->getName(). '(id:'.$eqLogic->getConfiguration('id').') -> preset ID -> ' .$_options['select']);
+				$eqLogic->callUrl(array('api' => 'SYNO.SurveillanceStation.PTZ', 'method' => 'GoPreset', 'presetId' => $_options['select'], 'cameraId' => $eqLogic->getConfiguration('id')));
+			} else {
+				throw new Exception('Commande impossible, la caméra est désactivée');
+			}
+		}
+		/* Code ajouté par Rémy JACOB le 25/12/2020 à partir des infos de https://community.jeedom.com/t/surveillance-station-telegram/31050/4
+			2021/06/05 - Modify by Mguyard to generate snapshotsendURL directly with snapshot action and not need of command snapshotsend - More simple for users 
+			2021/06/05 - Modify by Mguyard to download snapshot file in Jeedom */
+		if ($this->getLogicalId() == 'snapshot') {
+			if ($statecam == 'Activée'){
+				// Generate snapshot
+				log::add('surveillanceStation', 'debug', 'lancement de l\'action Instantané caméra '.$eqLogic->getName(). '(id:'.$eqLogic->getConfiguration('id').')');
+				$response = $eqLogic->callUrl(array('api' => 'SYNO.SurveillanceStation.SnapShot', 'method' => 'TakeSnapshot', 'dsId' => '0', 'camId' => $eqLogic->getConfiguration('id')));
+				// Get and store snapshot URL in Synology
+				$idSnapShot = $response['data']['id'];
+				log::add('surveillanceStation', 'debug', 'résultat ID Snapshot '.$this->getName(). '(id:'.$eqLogic->getConfiguration('id').') -> ' .var_export($idSnapShot, true));
+				$urlRecupSnapshot = $eqLogic->getUrl() . '/webapi/entry.cgi?api=SYNO.SurveillanceStation.SnapShot&version=1&method=LoadSnapshot&id='.$idSnapShot.'&imgSize=2&_sid='.$eqLogic->getSid();
+				log::add('surveillanceStation', 'debug', 'résultat URL du Snapshot '.$this->getName(). '(id:'.$eqLogic->getConfiguration('id').') -> ' .var_export($urlRecupSnapshot, true));
+				switch (config::byKey('snapLocation', 'surveillanceStation')) {
+					case 'synology':
+						$eqLogic->checkAndUpdateCmd('snapshotsendURL', $urlRecupSnapshot);
+						break;
+					case 'jeedom':
+						$snapshotPath = $eqLogic->getSnapshots($urlRecupSnapshot, 'jpg');
+						$eqLogic->checkAndUpdateCmd('snapshotsendURL', $snapshotPath);
+						break;
+				}
+			} else {
+				throw new Exception('Commande impossible, la caméra est désactivée');
+			}
+		}
+		/* Fin du code ajouté */
+
+
+		if ($this->getLogicalId() == 'homemode_start') {
+				log::add('surveillanceStation', 'debug', 'lancement de l\'action active Home Mode');
+				$eqLogic->callUrl(array('api' => 'SYNO.SurveillanceStation.HomeMode', 'method' => 'Switch', 'on' => 'true'));
+				$eqLogic->GetStatusHomeMode();
+				$eqLogic->refreshWidget();
+		}
+		if ($this->getLogicalId() == 'homemode_stop') {
+				log::add('surveillanceStation', 'debug', 'lancement de l\'action désactive Home Mode');
+				$eqLogic->callUrl(array('api' => 'SYNO.SurveillanceStation.HomeMode', 'method' => 'Switch', 'on' => 'false'));
+				$eqLogic->GetStatusHomeMode();
+		}
+		if ($this->getLogicalId() == 'refresh') {
+			$eqLogic->GetStatusCam();
+			$eqLogic->GetStatusDetecMouv();
+			$eqLogic->GetStatusHomeMode();
+			$eqLogic->GetUrlLive();
 		}
 	}
+	/*     * **********************Getteur Setteur*************************** */
 }
-
-
-class surveillanceStationCmd extends cmd
-{
-
-    /*     * *************************Attributs****************************** */
-    	public static $_widgetPossibility = array('custom' => true);
-    /*     * *********************Methode d'instance************************* */
-
-    public function preSave()
-    {
-
-        if ($this->getName() == '') {
-            throw new Exception(__('Veuillez choisir un nom pour la commande', __FILE__));
-        }
-
-        if ($this->getConfiguration('synoAction') == '') {
-            throw new Exception(__('Veuillez choisir une action pour la commande', __FILE__));
-        }
-
-        if ($this->getConfiguration('synoAction') != "statut" && $this->getConfiguration('synoAction') != "statutMotion") {
-            $this->setType("action");
-            $this->setSubType('other');
-        } else {
-            $this->setType("info");
-            $this->setSubType('binary');
-        }
-
-        $cmdConf = $this->getConfiguration('cameras');
-        $nbCams = 0;
-        foreach (array_keys($cmdConf) as $key) {
-            if ($cmdConf[$key] == '1') {
-                $nbCams++;
-            }
-        }
-
-        /*if ($this->getConfiguration('synoAction') == "startRecording" && $this->getConfiguration('askForDuration') == '1') {
-            if(!is_numeric($this->getConfiguration('duration')) || (is_numeric($this->getConfiguration('duration')) && $this->getConfiguration('duration') <= 0)){
-                throw new Exception(__('Erreur pour la commande : '.$this->getName().' ->'.'La durée d\'enregistrement doit être de type numérique, exprimée en minute.' , __FILE__));
-            }
-        }*/
-
-        if($nbCams == 0){
-            throw new Exception(__('Erreur pour la commande : '.$this->getName().' ->'.'Veuillez choisir au moins une caméra.', __FILE__));
-        }
-
-        if ($this->getConfiguration('synoAction') == "statut") {
-            if($nbCams > 1){
-                throw new Exception(__('Erreur pour la commande :  Statut caméra -> La commande est compatible avec une seule caméra. Créer une commande par caméra. ', __FILE__));
-            }
-        }
-		
-		if ($this->getConfiguration('synoAction') == "statutMotion") {
-            if($nbCams > 1){
-                throw new Exception(__('Erreur pour la commande : Statut détection Mouvement -> La commande est compatible avec une seule caméra. Créer une commande par caméra.', __FILE__));
-            }
-        }
-
-        $eq = $this->getEqLogic();
-
-        if($this->getConfiguration('dropbox') == '1'){
-            if($eq->getConfiguration('dropboxToken') == ''){
-                throw new Exception(__('Erreur pour la commande : '.$this->getName().' ->'.'Pour uploader sur dropbox veuillez rentrer un token.', __FILE__));
-            }
-        }
-
-        if($this->getConfiguration('email') == '1'){
-            if($eq->getConfiguration('emailServer') == '' ||
-                $eq->getConfiguration('emailPort') == '' ||
-                $eq->getConfiguration('emailSubject') == '' ||
-                $eq->getConfiguration('emailNomExp') == '' ||
-                $eq->getConfiguration('emailMailExp') == ''){
-                throw new Exception(__('Erreur pour la commande : '.$this->getName().' ->'.'Pour envoyer les snapshots par mail, veuillez configurer l\'accès à votre serveur smpt.', __FILE__));
-            }
-
-            if($this->getConfiguration('adresses') == ''){
-                throw new Exception(__('Erreur pour la commande : '.$this->getName().' ->'.'Pour envoyer les snapshots par mail, veuillez configurer renseigner des adresses de destinations.', __FILE__));
-            }
-        }
-    }
-
-    public function postSave()
-    {
-    }
-
-    public function execute($_options = null)
-    {
-        $action = $this->getConfiguration('synoAction');
-        $ret = $this->$action();
-
-        if ($this->getType() != 'action') {
-            return $ret;
-        }
-    }
-
-    private function disable()
-    {
-        $session = $this->auth($this->getEqLogic());
-        $cmdConf = $this->getConfiguration('cameras');
-        $synoConf = $this->getEqLogic();
-        $version = ($synoConf->getConfiguration('v6') == 0) ? 'v7' : 'v6';
-
-        foreach (array_keys($cmdConf) as $key) {
-            if ($cmdConf[$key] == '1') {
-                file_get_contents($this->buildUrl() . $this->getAPI($version,'DISABLE') . explode("%", $key)[1], false, $session);
-            }
-        }
-        $this->logout($session);
-
-        surveillanceStation::pull(null);
-    }
-
-    private function enable()
-    {
-        $session = $this->auth($this->getEqLogic());
-        $cmdConf = $this->getConfiguration('cameras');
-        $synoConf = $this->getEqLogic();
-        $version = ($synoConf->getConfiguration('v6') == 0) ? 'v7' : 'v6';
-        foreach (array_keys($cmdConf) as $key) {
-            if ($cmdConf[$key] == '1') {
-                file_get_contents($this->buildUrl() . $this->getAPI($version,'ENABLE') . explode("%", $key)[1], false, $session);
-            }
-        }
-        $this->logout($session);
-
-        surveillanceStation::pull(null);
-    }
-
-    private function startRecording()
-    {
-        $session = $this->auth($this->getEqLogic());
-        $cmdConf = $this->getConfiguration('cameras');
-        $synoConf = $this->getEqLogic();
-        $version = ($synoConf->getConfiguration('v6') == 0) ? 'v7' : 'v6';
-        foreach (array_keys($cmdConf) as $key) {
-            if ($cmdConf[$key] == '1') {
-                file_get_contents($this->buildUrl() . $this->getAPI($version,'START') . explode("%", $key)[1] , false, $session);
-            }
-        }
-
-        $this->logout($session);
-    }
-
-    private function stopRecording()
-    {
-        $session = $this->auth($this->getEqLogic());
-        $cmdConf = $this->getConfiguration('cameras');
-        $synoConf = $this->getEqLogic();
-        $version = ($synoConf->getConfiguration('v6') == 0) ? 'v7' : 'v6';
-        foreach (array_keys($cmdConf) as $key) {
-            if ($cmdConf[$key] == '1') {
-                file_get_contents($this->buildUrl() . $this->getAPI($version,'STOP') . explode("%", $key)[1], false, $session);
-            }
-        }
-        $this->logout($session);
-    }
-
-    private function startMotionSS()
-    {
-        $session = $this->auth($this->getEqLogic());
-        $cmdConf = $this->getConfiguration('cameras');
-        $synoConf = $this->getEqLogic();
-        $version = ($synoConf->getConfiguration('v6') == 0) ? 'v7' : 'v6';
-        foreach (array_keys($cmdConf) as $key) {
-            if ($cmdConf[$key] == '1') {
-                file_get_contents($this->buildUrl() . $this->getAPI($version,'STARTMOTIONSS') . explode("%", $key)[1], false, $session);
-            }
-        }
-        $this->logout($session);
-
-        surveillanceStation::pull(null);
-    }
-
-    private function startMotionCM()
-    {
-        $session = $this->auth($this->getEqLogic());
-        $cmdConf = $this->getConfiguration('cameras');
-        $synoConf = $this->getEqLogic();
-        $version = ($synoConf->getConfiguration('v6') == 0) ? 'v7' : 'v6';
-        foreach (array_keys($cmdConf) as $key) {
-            if ($cmdConf[$key] == '1') {
-                file_get_contents($this->buildUrl() . $this->getAPI($version,'STARTMOTIONCM') . explode("%", $key)[1], false, $session);
-            }
-        }
-        $this->logout($session);
-
-        surveillanceStation::pull(null);
-    }
-
-    private function stopMotion()
-    {
-        $session = $this->auth($this->getEqLogic());
-        $cmdConf = $this->getConfiguration('cameras');
-        $synoConf = $this->getEqLogic();
-        $version = ($synoConf->getConfiguration('v6') == 0) ? 'v7' : 'v6';
-        foreach (array_keys($cmdConf) as $key) {
-            if ($cmdConf[$key] == '1') {
-                file_get_contents($this->buildUrl() . $this->getAPI($version,'STOPMOTION') . explode("%", $key)[1], false, $session);
-            }
-        }
-        $this->logout($session);
-
-        surveillanceStation::pull(null);
-    }	
-	
-    private function snapshot()
-    {
-        require_once dirname(__FILE__) . '/../../3rdparty/dropbox-sdk/lib/Dropbox/autoload.php';
-        require_once dirname(__FILE__) . '/../../3rdparty/PHPMailer-master/PHPMailerAutoload.php';
-
-        $session = $this->auth($this->getEqLogic());
-        $cmdConf = $this->getConfiguration('cameras');
-        $synoConf = $this->getEqLogic();
-
-        $cmd = 'ruby '.dirname(__FILE__) . '/../../3rdparty/'.'syno.rb';
-        $cmd = $cmd . " " . $synoConf->getConfiguration('host') . " " . $synoConf->getConfiguration('port') . " " . $synoConf->getConfiguration('login') . " " . rawurlencode($synoConf->getConfiguration('password'));
-        $version = ($synoConf->getConfiguration('v6') == 0) ? 'v7' : 'v6';
-        $cmd = $cmd . " " . $version . " ";
-
-        foreach (array_keys($cmdConf) as $key) {
-            if ($cmdConf[$key] == '1') {
-                $cmd = $cmd . self::wd_remove_accents($key) . ",";
-            }
-        }
-
-        $cmd = substr($cmd, 0, -1);
-
-        log::add('surveillanceStation', 'debug', 'Commande ruby :'.$cmd);
-        $path = exec($cmd);
-        log::add('surveillanceStation', 'debug', 'Path snapshot :'.$path);
-
-        if ($this->getConfiguration('email') == '1') {
-
-            try {
-
-                $mail = new PHPMailer();
-
-                $mail->isSMTP();
-                $mail->Host  = $synoConf->getConfiguration('emailServer');
-
-
-                if($synoConf->getConfiguration('emailLogin') != ''){
-                    $mail->SMTPAuth     = ($synoConf->getConfiguration('emailSecurity') == '') ? false : true;
-                    $mail->Username     = $synoConf->getConfiguration('emailLogin');
-                    $mail->Password     = $synoConf->getConfiguration('emailPassword');
-                    $mail->SMTPSecure   = $synoConf->getConfiguration('emailSecurity');
-                }
-                $mail->Port         = $synoConf->getConfiguration('emailPort');
-                $mail->From         = $synoConf->getConfiguration('emailMailExp');
-                $mail->FromName     = $synoConf->getConfiguration('emailNomExp');
-
-                $mail->CharSet      = 'utf-8';
-
-                $tos = explode(',', $this->getConfiguration('adresses'));
-
-                foreach ($tos as $to) {
-                    $mail->addAddress($to);
-                }
-
-                $body = '<body><head>';
-                $body = $body . '</head>';
-                $body = $body . '<h3>[Jeedom] - plugin surveillance station</h3>';
-                $body = $body . '<div>';
-
-
-                $snapshots = array_diff(scandir($path), array('..', '.'));
-
-                foreach ($snapshots as $key => $snapshot) {
-                    $mail->AddEmbeddedImage($path . "/" . $snapshot, $snapshot, $snapshot);
-
-                    $body = $body . '<div>';
-                    $body = $body . '<H6><span style="font-size: 12px;background-color:#337ab7;color:#ffffff;border-radius:.25em;vertical-align:baseline;padding: .2em .6em .3em;">' . $snapshot . ' </span></H6>';
-                    $body = $body . '<img class="img-rounded" style="padding:5px" src="cid:' . $snapshot . '">';
-                    $body = $body . '</div>';
-
-                }
-
-                $body = $body . '</div>';
-                $body = $body . '</body>';
-                $mail->Body = $body;
-                $mail->AltBody = '[Jeedom] - plugin surveillance station';
-
-                $mail->isHTML(true);
-
-                $mail->Subject = $synoConf->getConfiguration('emailSubject');
-
-                if (!$mail->send()) {
-                    echo 'Le message n\'a pas été envoyé.';
-                    echo 'Mailer Error: ' . $mail->ErrorInfo;
-                } else {
-                }
-            } catch (Exception $e) {
-                log::add('surveillanceStation', 'debug', 'Impossible d\'envoyer le mail avec les snapshots .'.$e);
-            }
-        }
-        if ($this->getConfiguration('dropbox') == '1') {
-            try {
-                $dbxClient = new dbx\Client($synoConf->getConfiguration('dropboxToken'), "Jeedom synology plugin");
-                $snapshots = array_diff(scandir($path), array('..', '.'));
-                $dropbox_path = str_replace("/tmp", "", $path);
-                foreach ($snapshots as $key => $snapshot) {
-                    $f = fopen($path . "/" . $snapshot, "rb");
-                    $dbxClient->uploadFile("/" . $snapshot,
-                        dbx\WriteMode::add(), $f);
-                    fclose($f);
-                }
-				$deletedsnap = exec("rm -r /tmp". $dropbox_path);
-
-            } catch (Exception $e) {
-                log::add('surveillanceStation', 'debug', 'upload impossible, vérifié votre token dropbox '.$e);
-            }
-        }
-
-        $this->logout($session);
-    }
-
-    public static function getAPI($version,$cmd){
-
-        $SYNO_API = array
-        (
-            'v6' => array(
-                'LIST'          => '/webapi/SurveillanceStation/camera.cgi?api=SYNO.SurveillanceStation.Camera&method=List&version=1&additional=device,video',
-                'ENABLE'        => '/webman/3rdparty/SurveillanceStation/cgi/camera.cgi?action=cameraEnable&UserId=1024&idList=',
-                'DISABLE'       => '/webman/3rdparty/SurveillanceStation/cgi/camera.cgi?action=cameraDisable&UserId=1024&idList=',
-                'START'         => '/webapi/SurveillanceStation/extrecord.cgi?api=SYNO.SurveillanceStation.ExternalRecording&method=Record&version=2&action=start&cameraId=',
-                'STOP'          => '/webapi/SurveillanceStation/extrecord.cgi?api=SYNO.SurveillanceStation.ExternalRecording&method=Record&version=2&action=stop&cameraId=',
-                'STATUT'        => '/webapi/SurveillanceStation/camera.cgi?api=SYNO.SurveillanceStation.Camera&method=GetInfo&version=1&cameraIds=',
-            ),
-            'v7' => array(
-					'LIST'				=> '/webapi/entry.cgi?api=SYNO.SurveillanceStation.Camera&method=List&version=1',
-					'ENABLE'				=> '/webapi/entry.cgi?api=SYNO.SurveillanceStation.Camera&method=Enable&version=3&cameraIds=',
-					'DISABLE'			=> '/webapi/entry.cgi?api=SYNO.SurveillanceStation.Camera&method=Disable&version=3&cameraIds=',
-					'START'				=> '/webapi/entry.cgi?api=SYNO.SurveillanceStation.ExternalRecording&method=Record&version=2&action=start&cameraId=',
-					'STOP'				=> '/webapi/entry.cgi?api=SYNO.SurveillanceStation.ExternalRecording&method=Record&version=2&action=stop&cameraId=',
-					'STATUT'				=> '/webapi/entry.cgi?api=SYNO.SurveillanceStation.Camera&method=GetInfo&version=2&cameraIds=',
-					'STARTMOTIONSS'	=> '/webapi/entry.cgi?api="SYNO.SurveillanceStation.Camera.Event"&source=1&version="1"&method="MDParamSave"&keep=true&camId=',
-					'STARTMOTIONCM'	=> '/webapi/entry.cgi?api="SYNO.SurveillanceStation.Camera.Event"&source=0&version="1"&method="MDParamSave"&keep=true&camId=',
-					'STOPMOTION'		=> '/webapi/entry.cgi?api="SYNO.SurveillanceStation.Camera.Event"&source=-1&version="1"&method="MDParamSave"&keep=true&camId=',
-					'STATUTMOTION'		=> '/webapi/entry.cgi?api="SYNO.SurveillanceStation.Camera.Event"&version="1"&method=MotionEnum&camId=',
-					'PTZUP'				=> '/webapi/entry.cgi?api=SYNO.SurveillanceStation.PTZ&method=Move&version=1&direction=up&speed=1&moveType=Start&cameraId=',
-					'PTZDOWN'			=> '/webapi/entry.cgi?api=SYNO.SurveillanceStation.PTZ&method=Move&version=1&direction=down&speed=1&moveType=Start&cameraId=',
-					'PTZLEFT'			=> '/webapi/entry.cgi?api=SYNO.SurveillanceStation.PTZ&method=Move&version=1&direction=left&speed=1&moveType=Start&cameraId=',
-					'PTZRIGHT'			=> '/webapi/entry.cgi?api=SYNO.SurveillanceStation.PTZ&method=Move&version=1&direction=right&speed=1&moveType=Start&cameraId=',
-					'PTZSTOP'			=> '/webapi/entry.cgi?api=SYNO.SurveillanceStation.PTZ&method=Move&version=1&direction=up&speed=1&moveType=Stop&cameraId=',
-			)
-        );
-        return $SYNO_API[$version][$cmd];
-    }
-
-    private function statut()
-    {
-        $session = $this->auth($this->getEqLogic());
-        $synoConf = $this->getEqLogic();
-        $version = ($synoConf->getConfiguration('v6') == 0) ? 'v7' : 'v6';
-            $contents = file_get_contents($this->buildUrl().$this->getAPI($version,'STATUT').$this->getIds(), false, $session);
-        $this->logout($session);
-
-        $json = json_decode($contents);
-        return ($json->data->cameras[0]->enabled == '') ? "0" : "1";
-    }
-
-	private function statutMotion()
-    {
-        $session = $this->auth($this->getEqLogic());
-        $synoConf = $this->getEqLogic();
-        $version = ($synoConf->getConfiguration('v6') == 0) ? 'v7' : 'v6';
-            $contents = file_get_contents($this->buildUrl().$this->getAPI($version,'STATUTMOTION').$this->getIds(), false, $session);
-        $this->logout($session);
-
-        $json = json_decode($contents);
-		if ($json->data->MDParam->source == '-1'){
-			return "0";
-		}
-		elseif ($json->data->MDParam->source == '0' || $json->data->MDParam->source == '1'){
-			return "1";
-		}
-    }
-
-    private function ptzup()
-    {
-        $session = $this->auth($this->getEqLogic());
-        $cmdConf = $this->getConfiguration('cameras');
-        $synoConf = $this->getEqLogic();
-        $version = ($synoConf->getConfiguration('v6') == 0) ? 'v7' : 'v6';
-        foreach (array_keys($cmdConf) as $key) {
-            if ($cmdConf[$key] == '1') {
-                file_get_contents($this->buildUrl() . $this->getAPI($version,'PTZUP') . explode("%", $key)[1], false, $session);
-            }
-        }
-        $this->logout($session);
-
-        surveillanceStation::pull(null);
-    }
-
-    private function ptzdown()
-    {
-        $session = $this->auth($this->getEqLogic());
-        $cmdConf = $this->getConfiguration('cameras');
-        $synoConf = $this->getEqLogic();
-        $version = ($synoConf->getConfiguration('v6') == 0) ? 'v7' : 'v6';
-        foreach (array_keys($cmdConf) as $key) {
-            if ($cmdConf[$key] == '1') {
-                file_get_contents($this->buildUrl() . $this->getAPI($version,'PTZDOWN') . explode("%", $key)[1], false, $session);
-            }
-        }
-        $this->logout($session);
-
-        surveillanceStation::pull(null);
-    }    
-
-    private function ptzleft()
-    {
-        $session = $this->auth($this->getEqLogic());
-        $cmdConf = $this->getConfiguration('cameras');
-        $synoConf = $this->getEqLogic();
-        $version = ($synoConf->getConfiguration('v6') == 0) ? 'v7' : 'v6';
-        foreach (array_keys($cmdConf) as $key) {
-            if ($cmdConf[$key] == '1') {
-                file_get_contents($this->buildUrl() . $this->getAPI($version,'PTZLEFT') . explode("%", $key)[1], false, $session);
-            }
-        }
-        $this->logout($session);
-
-        surveillanceStation::pull(null);
-    } 
-    
-    private function ptzright()
-    {
-        $session = $this->auth($this->getEqLogic());
-        $cmdConf = $this->getConfiguration('cameras');
-        $synoConf = $this->getEqLogic();
-        $version = ($synoConf->getConfiguration('v6') == 0) ? 'v7' : 'v6';
-        foreach (array_keys($cmdConf) as $key) {
-            if ($cmdConf[$key] == '1') {
-                file_get_contents($this->buildUrl() . $this->getAPI($version,'PTZRIGHT') . explode("%", $key)[1], false, $session);
-            }
-        }
-        $this->logout($session);
-
-        surveillanceStation::pull(null);
-    } 
-
-    private function ptzstop()
-    {
-        $session = $this->auth($this->getEqLogic());
-        $cmdConf = $this->getConfiguration('cameras');
-        $synoConf = $this->getEqLogic();
-        $version = ($synoConf->getConfiguration('v6') == 0) ? 'v7' : 'v6';
-        foreach (array_keys($cmdConf) as $key) {
-            if ($cmdConf[$key] == '1') {
-                file_get_contents($this->buildUrl() . $this->getAPI($version,'PTZSTOP') . explode("%", $key)[1], false, $session);
-            }
-        }
-        $this->logout($session);
-
-        surveillanceStation::pull(null);
-    } 
-  
-    private function buildUrl()
-    {
-        $synoConf = $this->getEqLogic();
-        $host = $synoConf->getConfiguration('host');
-        $port = $synoConf->getConfiguration('port');
-        return $host . ':' . $port;
-    }
-
-    private function auth($synoConf)
-    {
-
-        $host = $synoConf->getConfiguration('host');
-        $port = $synoConf->getConfiguration('port');
-        $login = $synoConf->getConfiguration('login');
-        $password = $synoConf->getConfiguration('password');
-
-        $ch = curl_init($host . ':' . $port . '/webapi/auth.cgi?api=SYNO.API.Auth&method=Login&version=1&account=' . $login . '&passwd=' . urlencode($password) . '&session=SurveillanceStation');
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_ENCODING, "");
-		curl_setopt($ch, CURLOPT_HEADER, true);
-		curl_setopt($ch, CURLOPT_AUTOREFERER, true);
-		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-		curl_setopt($ch, CURLOPT_SSLVERSION, 0);
-		curl_setopt($ch, CURLOPT_TIMEOUT, 7200);
-		curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 7200);
-		curl_setopt($ch, CURLOPT_MAXREDIRS, 10);
-        curl_setopt($ch, CURLOPT_VERBOSE, 0);
-        $result = curl_exec($ch);
-
-        $header_size = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
-        $body = substr($result, $header_size);
-
-        if(strstr($body,'error') != null){
-            log::add('surveillanceStation', 'error', 'Erreur lors de l\'authentification. Vérifiez vos login et password.');
-            throw new Exception('Erreur lors de l\'authentification. Vérifiez vos login et password.');
-        }
-
-        preg_match('/^Set-Cookie:\s*([^;]*)/mi', $result, $m);
-        parse_str($m[1], $cookies);
-
-        $opts = array(
-            'http' => array(
-                'method' => "GET",
-                'timeout' => 15,
-                'header' => "Cookie: id=" . $cookies['id'] . ";\r\n"
-            ),
-            'https' => array(
-                'method' => "GET",
-                'timeout' => 15,
-                'header' => "Cookie: id=" . $cookies['id'] . ";\r\n"
-            )
-        );
-        return stream_context_create($opts);
-    }
-
-    private function logout($session)
-    {
-        file_get_contents($this->buildUrl() . '/webapi/auth.cgi?api=SYNO.API.Auth&method=Logout&version=1&session=SurveillanceStation', false, $session);
-    }
-
-    public static function wd_remove_accents($str, $charset='utf-8')
-    {
-        $str = htmlentities($str, ENT_NOQUOTES, $charset);
-
-        $str = preg_replace('#&([A-za-z])(?:acute|cedil|caron|circ|grave|orn|ring|slash|th|tilde|uml);#', '\1', $str);
-        $str = preg_replace('#&([A-za-z]{2})(?:lig);#', '\1', $str); // pour les ligatures e.g. '&oelig;'
-        $str = preg_replace('#&[^;]+;#', '', $str); // supprime les autres caractères
-
-        return $str;
-    }
-
-
-    /**
-     * @return string
-     */
-    private function getIds()
-    {
-        $cmdConf = $this->getConfiguration('cameras');
-        $ids = "";
-        foreach (array_keys($cmdConf) as $key) {
-            if ($cmdConf[$key] == '1') {
-                $ids = $ids.explode("%", $key)[1].',';
-            }
-        }
-        $ids = substr($ids, 0, -1);
-        return $ids;
-    }
-
-    /*     * ***********************Methode static*************************** */
-
-    /*     * *********************Methode d'instance************************* */
-}
-
-?>
